@@ -313,7 +313,7 @@ function OptionModal({
   };
 
   const allOptions = menu.option_groups.flatMap(g =>
-    g.options.filter(o => (selected[g.id] ?? []).includes(o.id))
+    (g.options ?? []).filter(o => (selected[g.id] ?? []).includes(o.id))
   );
   const optExtra = allOptions.reduce((s, o) => s + o.extra_price, 0);
   const total    = (menu.price + optExtra) * qty;
@@ -348,7 +348,7 @@ function OptionModal({
                   {group.is_required ? '필수' : '선택'}{group.max_select > 1 ? ` (최대 ${group.max_select})` : ''}
                 </span>
               </div>
-              {group.options.map(opt => {
+              {(group.options ?? []).map(opt => {
                 const checked = (selected[group.id] ?? []).includes(opt.id);
                 return (
                   <button
