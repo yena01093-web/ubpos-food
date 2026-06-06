@@ -16,21 +16,21 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { storeId, tableId, type = 'dine_in', items, requestNote } = body;
 
-    // ── 유효성 검사 ──────────────────────────────────────
     if (!storeId)               return fail('storeId가 필요합니다');
     if (!items?.length)         return fail('주문 항목이 없습니다');
     if (type === 'dine_in' && !tableId) return fail('테이블 정보가 필요합니다');
 
+    // resolvedItems를 트랜잭션 밖에서도 쓰기 위해 여기서 선언
+    let resolvedItemsOut: { menuName: string; quantity: number; itemTotal: number }[] = [];
+
     const order = await withTransaction(async (client: PoolClient) => {
 
-      // 1. 가맹점 영업 여부 확인
       const { rows: [store] } = await client.query(
         `SELECT id, is_open FROM stores WHERE id = $1`, [storeId]
       );
       if (!store)         throw new Error('가맹점을 찾을 수 없습니다');
       if (!store.is_open) throw new Error('현재 영업 중이 아닙니다');
 
-      // 2. 메뉴 및 옵션 가격 서버사이드 계산
       let totalPrice = 0;
       const resolvedItems = [];
 
@@ -40,10 +40,9 @@ export async function POST(req: NextRequest) {
            WHERE id = $1 AND store_id = $2 AND is_active = true`,
           [item.menuId, storeId]
         );
-        if (!menu)          throw new Error(`메뉴를 찾을 수 없습니다: ${item.menuId}`);
+        if (!menu)           throw new Error(`메뉴를 찾을 수 없습니다: ${item.menuId}`);
         if (menu.is_soldout) throw new Error(`품절된 메뉴입니다: ${menu.name}`);
 
-        // 선택된 옵션 가격 합산
         let optionExtra = 0;
         const selectedOptions = [];
 
@@ -72,7 +71,6 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      // 3. 당일 주문번호 채번
       const { rows: [seq] } = await client.query(
         `SELECT COALESCE(MAX(CAST(SUBSTRING(order_number FROM 2) AS INT)), 0) + 1 AS next
          FROM orders
@@ -81,7 +79,6 @@ export async function POST(req: NextRequest) {
       );
       const orderNumber = `#${String(seq.next).padStart(4, '0')}`;
 
-      // 4. orders INSERT
       const { rows: [newOrder] } = await client.query(
         `INSERT INTO orders
            (store_id, table_id, order_number, type, status, total_price,
@@ -91,7 +88,6 @@ export async function POST(req: NextRequest) {
         [storeId, tableId ?? null, orderNumber, type, totalPrice, requestNote ?? null]
       );
 
-      // 5. order_items INSERT
       for (const ri of resolvedItems) {
         await client.query(
           `INSERT INTO order_items
@@ -103,12 +99,16 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // 6. 테이블 상태 → occupied
       if (tableId) {
         await client.query(
           `UPDATE tables SET status = 'occupied' WHERE id = $1`, [tableId]
         );
       }
+
+      // 트랜잭션 밖에서 사용할 수 있도록 저장
+      resolvedItemsOut = resolvedItems.map(i => ({
+        menuName: i.menuName, quantity: i.quantity, itemTotal: i.itemTotal,
+      }));
 
       return { ...newOrder, storeId };
     });
@@ -121,7 +121,7 @@ export async function POST(req: NextRequest) {
       status:       'pending',
       type,
       table_id:     tableId ?? null,
-      items:        resolvedItems.map(i => ({
+      items:        resolvedItemsOut.map(i => ({
         menu_name: i.menuName, quantity: i.quantity, item_total: i.itemTotal,
       })),
     });
@@ -133,7 +133,6 @@ export async function POST(req: NextRequest) {
 
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : '주문 처리 중 오류가 발생했습니다';
-    // 비즈니스 에러 (품절, 영업 종료 등)
     if (['품절', '영업', '찾을 수 없습니다'].some(k => msg.includes(k))) {
       return fail(msg);
     }
