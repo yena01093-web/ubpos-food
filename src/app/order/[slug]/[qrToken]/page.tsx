@@ -32,6 +32,17 @@ export default function OrderPage({
 
   const catRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
+  // ── 나이스페이먼츠 SDK 동적 로딩 ────────────────────────────────
+  useEffect(() => {
+    if (document.getElementById('nicepay-sdk')) return;
+    const script = document.createElement('script');
+    script.id   = 'nicepay-sdk';
+    script.src  = 'https://pg-web.nicepay.co.kr/v3/common/js/nicepay-pgweb.js';
+    script.type = 'text/javascript';
+    script.async = false;
+    document.head.appendChild(script);
+  }, []);
+
   // ── 데이터 로드 ────────────────────────────────────────────────
   useEffect(() => {
     (async () => {
@@ -174,8 +185,6 @@ export default function OrderPage({
 
   return (
     <>
-      {/* 나이스페이먼츠 SDK */}
-      <script src="https://pg-web.nicepay.co.kr/v3/common/js/nicepay-pgweb.js" type="text/javascript"></script>
 
       <div style={styles.root}>
         {/* 헤더 */}
