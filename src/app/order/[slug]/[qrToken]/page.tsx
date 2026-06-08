@@ -74,7 +74,7 @@ export default function OrderPage({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          storeId:     store ? (categories[0] as any)?.store_id : undefined,
+          storeId:     store?.id,
           tableId:     table.id,
           type:        'dine_in',
           items:       cart.items.map(i => ({
