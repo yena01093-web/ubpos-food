@@ -96,53 +96,57 @@ export default function OrderPage({
     }
   };
 
-  // ── 결제 ──────────────────────────────────────────────────────
+  // ── 결제 (나이스페이먼츠 V1) ─────────────────────────────────
   const processPayment = async () => {
     setPayLoading(true);
     setError('');
     try {
-      // 1. 준비
-      const prepRes = await fetch('/api/payment/prepare', {
+      // 서버에서 SignData 생성
+      const sdRes  = await fetch('/api/payment/signdata', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orderId }),
       });
-      const prepData = await prepRes.json();
-      if (!prepRes.ok) throw new Error(prepData.message);
+      const sdData = await sdRes.json();
+      if (!sdRes.ok) throw new Error(sdData.message);
 
-      // 2. 나이스페이먼츠 SDK 호출 (window.AUTHNICE)
-      const { clientKey, amount, orderName } = prepData.data;
-      await new Promise<void>((resolve, reject) => {
-        (window as any).AUTHNICE.requestPay({
-          clientId:    clientKey,
-          method:      'cardAndEasyPay',
-          orderId,
-          amount,
-          goodsName:   orderName,
-          returnUrl:   `${window.location.origin}/api/payment/confirm`,
-          fnError:     (result: { errorMsg: string }) => reject(new Error(result.errorMsg)),
-        }, async (result: { paymentKey: string; amount: number }) => {
-          // 3. 서버사이드 승인
-          const confRes = await fetch('/api/payment/confirm', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              orderId,
-              paymentKey: result.paymentKey,
-              amount:     result.amount,
-            }),
-          });
-          const confData = await confRes.json();
-          if (!confRes.ok) { reject(new Error(confData.message)); return; }
-          resolve();
-        });
+      const { mid, amt, moid, goodsName, ediDate, signData } = sdData.data;
+      const returnURL = `${window.location.origin}/api/payment/result`;
+
+      // form 동적 생성 후 goPay() 호출
+      const form = document.createElement('form');
+      form.name   = 'payForm';
+      form.method = 'post';
+      form.action = returnURL;
+      form.acceptCharset = 'euc-kr';
+
+      const fields: Record<string, string> = {
+        PayMethod:  'CARD',
+        GoodsName:  goodsName,
+        Amt:        amt,
+        MID:        mid,
+        Moid:       moid,
+        ReturnURL:  returnURL,
+        CharSet:    'utf-8',
+        EdiDate:    ediDate,
+        SignData:   signData,
+        GoodsCl:    '1',
+        TransType:  '0',
+      };
+
+      Object.entries(fields).forEach(([k, v]) => {
+        const input = document.createElement('input');
+        input.type  = 'hidden';
+        input.name  = k;
+        input.value = v;
+        form.appendChild(input);
       });
 
-      cart.clear();
-      setOrderStep('done');
+      document.body.appendChild(form);
+      (window as any).goPay(form);
+
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : '결제 중 오류가 발생했습니다');
-    } finally {
       setPayLoading(false);
     }
   };
@@ -154,7 +158,7 @@ export default function OrderPage({
   return (
     <>
       {/* 나이스페이먼츠 SDK */}
-      <script src="https://pay.nicepay.co.kr/v1/js/" async />
+      <script src="https://pg-web.nicepay.co.kr/v3/common/js/nicepay-pgweb.js" type="text/javascript"></script>
 
       <div style={styles.root}>
         {/* 헤더 */}
