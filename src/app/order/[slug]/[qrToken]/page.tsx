@@ -143,6 +143,23 @@ export default function OrderPage({
       });
 
       document.body.appendChild(form);
+
+      // SDK 로딩 대기 후 goPay 호출
+      const waitGoPay = () => new Promise<void>((resolve, reject) => {
+        let tries = 0;
+        const check = setInterval(() => {
+          tries++;
+          if (typeof (window as any).goPay === 'function') {
+            clearInterval(check);
+            resolve();
+          } else if (tries > 20) {
+            clearInterval(check);
+            reject(new Error('결제 모듈 로딩 실패. 페이지를 새로고침 해주세요.'));
+          }
+        }, 200);
+      });
+
+      await waitGoPay();
       (window as any).goPay(form);
 
     } catch (e: unknown) {
