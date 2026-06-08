@@ -15,7 +15,7 @@ export default function OrderPage({
   const { slug, qrToken } = params;
   const cart = useCart();
 
-  const [store,      setStore]      = useState<{ name: string; notice: string | null; is_open: boolean } | null>(null);
+  const [store,      setStore]      = useState<{ id: string; name: string; notice: string | null; is_open: boolean } | null>(null);
   const [table,      setTable]      = useState<{ id: string; table_number: string } | null>(null);
   const [categories, setCategories] = useState<CategoryWithMenus[]>([]);
   const [loading,    setLoading]    = useState(true);
