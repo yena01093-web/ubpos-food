@@ -132,7 +132,7 @@ export default function OrderPage({
       form.acceptCharset = 'euc-kr';
 
       const fields: Record<string, string> = {
-        PayMethod:  'cardAndEasyPay',
+        PayMethod:  'CARD',
         GoodsName:  goodsName,
         Amt:        amt,
         MID:        mid,
