@@ -1,18 +1,21 @@
-// POST /api/payment/result
-// 나이스페이먼츠 V1 인증 결과 수신 → 승인 API 호출
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { query, queryOne } from '@/lib/db';
 import { emitToDashboard, emitToOrder } from '@/lib/ws-emit';
 import crypto from 'crypto';
-import { NextResponse } from 'next/server';
 
 const NICE_SECRET_KEY = process.env.NICE_SECRET_KEY!;
-const APP_URL         = 'https://ubpos-food.vercel.app';
+const APP_URL = 'https://ubpos-food.vercel.app';
+
+function jsRedirect(url: string) {
+  return new NextResponse(
+    `<!DOCTYPE html><html><head><meta charset="utf-8"><script>window.location.replace(${JSON.stringify(url)});</script></head><body></body></html>`,
+    { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+  );
+}
 
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
-
     const authResultCode = formData.get('AuthResultCode') as string;
     const authResultMsg  = formData.get('AuthResultMsg') as string;
     const authToken      = formData.get('AuthToken') as string;
@@ -23,7 +26,10 @@ export async function POST(req: NextRequest) {
     const amt            = formData.get('Amt') as string;
     const payMethod      = formData.get('PayMethod') as string;
 
-    // orderId 복원
+    if (authResultCode !== '0000') {
+      return jsRedirect(`${APP_URL}/payment/fail?msg=${encodeURIComponent(authResultMsg)}`);
+    }
+
     const order = await queryOne<{
       id: string; total_price: number; nice_amount: number | null;
       store_id: string; payment_status: string;
@@ -33,24 +39,15 @@ export async function POST(req: NextRequest) {
       [moid]
     );
 
-    if (authResultCode !== '0000') {
-      return new NextResponse(
-        `<!DOCTYPE html><html><head><meta charset="utf-8">
-        <script>window.location.replace('${APP_URL}/payment/fail?msg=${encodeURIComponent(authResultMsg)}');</script>
-        </head><body></body></html>`,
-        { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
-      );
-    }
-
     if (!order) {
-      return NextResponse.redirect(`${APP_URL}/payment/fail?msg=주문을 찾을 수 없습니다`);
+      return jsRedirect(`${APP_URL}/payment/fail?msg=주문을 찾을 수 없습니다`);
     }
 
     if (order.nice_amount && Number(amt) !== order.nice_amount) {
-      return NextResponse.redirect(`${APP_URL}/payment/fail?msg=결제금액 불일치`);
+      return jsRedirect(`${APP_URL}/payment/fail?msg=결제금액 불일치`);
     }
 
-    const now     = new Date();
+    const now = new Date();
     const ediDate = now.getFullYear().toString()
       + String(now.getMonth() + 1).padStart(2, '0')
       + String(now.getDate()).padStart(2, '0')
@@ -87,7 +84,7 @@ export async function POST(req: NextRequest) {
         `INSERT INTO payment_logs (order_id, action, request, response, is_success) VALUES ($1,'approve_fail',$2,$3,false)`,
         [order.id, JSON.stringify({ txTid, amt }), JSON.stringify(result)]
       );
-      return NextResponse.redirect(`${APP_URL}/payment/fail?msg=${encodeURIComponent(result.ResultMsg)}`);
+      return jsRedirect(`${APP_URL}/payment/fail?msg=${encodeURIComponent(result.ResultMsg)}`);
     }
 
     await query(
@@ -104,15 +101,10 @@ export async function POST(req: NextRequest) {
     await emitToDashboard(order.store_id, 'order:status_changed', { orderId: order.id, status: 'accepted' });
     await emitToOrder(order.id, 'order:status_changed', { status: 'accepted' });
 
-    return new NextResponse(
-      `<!DOCTYPE html><html><head><meta charset="utf-8">
-      <script>window.location.replace('${APP_URL}/payment/success?orderId=${order.id}');</script>
-      </head><body></body></html>`,
-      { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
-    );
+    return jsRedirect(`${APP_URL}/payment/success?orderId=${order.id}`);
 
   } catch (err) {
     console.error('[payment/result]', err);
-    return NextResponse.redirect(`${APP_URL}/payment/fail?msg=서버오류`);
+    return jsRedirect(`${APP_URL}/payment/fail?msg=서버오류`);
   }
 }
