@@ -34,7 +34,12 @@ export async function POST(req: NextRequest) {
     );
 
     if (authResultCode !== '0000') {
-      return NextResponse.redirect(`${APP_URL}/payment/fail?msg=${encodeURIComponent(authResultMsg)}`);
+      return new NextResponse(
+        `<!DOCTYPE html><html><head><meta charset="utf-8">
+        <script>window.location.replace('${APP_URL}/payment/fail?msg=${encodeURIComponent(authResultMsg)}');</script>
+        </head><body></body></html>`,
+        { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+      );
     }
 
     if (!order) {
@@ -99,7 +104,12 @@ export async function POST(req: NextRequest) {
     await emitToDashboard(order.store_id, 'order:status_changed', { orderId: order.id, status: 'accepted' });
     await emitToOrder(order.id, 'order:status_changed', { status: 'accepted' });
 
-    return NextResponse.redirect(`${APP_URL}/payment/success?orderId=${order.id}`);
+    return new NextResponse(
+      `<!DOCTYPE html><html><head><meta charset="utf-8">
+      <script>window.location.replace('${APP_URL}/payment/success?orderId=${order.id}');</script>
+      </head><body></body></html>`,
+      { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+    );
 
   } catch (err) {
     console.error('[payment/result]', err);
