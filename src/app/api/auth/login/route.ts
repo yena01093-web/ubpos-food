@@ -53,6 +53,7 @@ export async function POST(req: NextRequest) {
     return ok({
       accessToken,
       refreshToken,
+      storeIds,
       user: { id: user.id, email: user.email, name: user.name, role: user.role },
     });
   } catch (err) {
