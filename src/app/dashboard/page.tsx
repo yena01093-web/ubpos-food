@@ -31,7 +31,7 @@ export default function DashboardPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
 
-      const storeId = data.data.user.storeIds?.[0] ?? '';
+      const storeId = data.data.storeIds?.[0] ?? data.data.user.storeIds?.[0] ?? '';
       localStorage.setItem('ubpos_token', data.data.accessToken);
       localStorage.setItem('ubpos_store', storeId);
       setAuth({ token: data.data.accessToken, storeId });
