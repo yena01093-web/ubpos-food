@@ -458,7 +458,7 @@ function CartModal({ cart, requestNote, onNoteChange, onClose, onOrder }: {
 
           <textarea
             style={styles.noteInput}
-            placeholder="요청사항 (예: 덜 맵게, 수저 주세요)"
+            placeholder="요청사항"
             value={requestNote}
             onChange={e => onNoteChange(e.target.value)}
             rows={2}

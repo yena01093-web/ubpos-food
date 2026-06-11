@@ -1,0 +1,14 @@
+{
+  "name": "ubpos-printer-agent",
+  "version": "1.0.0",
+  "description": "ubpos 프린터 에이전트",
+  "main": "agent.js",
+  "scripts": {
+    "start": "node agent.js"
+  },
+  "dependencies": {
+    "serialport": "^12.0.0",
+    "socket.io-client": "^4.7.5",
+    "iconv-lite": "^0.6.3"
+  }
+}
