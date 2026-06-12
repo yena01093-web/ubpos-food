@@ -125,8 +125,9 @@ async function login() {
 async function poll() {
   try {
     const today = new Date().toISOString().slice(0,10);
+    // status 조건 제거: 그날 전체 주문을 가져와서 printed Set으로 중복 출력만 방지
     const res = await fetch(
-      `${CONFIG.API_URL}/api/dashboard/orders?storeId=${CONFIG.STORE_ID}&date=${today}&status=pending`,
+      `${CONFIG.API_URL}/api/dashboard/orders?storeId=${CONFIG.STORE_ID}&date=${today}`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
 
