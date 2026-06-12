@@ -71,6 +71,12 @@ export default function OrdersPanel({ storeId, token }: { storeId: string; token
     return () => { off1(); off2(); };
   }, [storeId, load, joinStore, on]);
 
+  // ── 자동 새로고침 (15초) ───────────────────────────────────────
+  useEffect(() => {
+    const interval = setInterval(() => { load(); }, 15000);
+    return () => clearInterval(interval);
+  }, [load]);
+
   // ── 상태 변경 ──────────────────────────────────────────────────
   const changeStatus = async (orderId: string, status: string) => {
     await fetch(`/api/orders/${orderId}/status`, {

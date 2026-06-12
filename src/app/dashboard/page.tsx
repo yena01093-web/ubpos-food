@@ -42,6 +42,13 @@ export default function DashboardPage() {
     }
   };
 
+  const logout = () => {
+    localStorage.removeItem('ubpos_token');
+    localStorage.removeItem('ubpos_store');
+    setAuth(null);
+    setEmail(''); setPassword('');
+  };
+
   if (loading) return null;
 
   if (!auth) {
@@ -74,7 +81,7 @@ export default function DashboardPage() {
     );
   }
 
-  return <DashboardLayout storeId={auth.storeId} token={auth.token} />;
+  return <DashboardLayout storeId={auth.storeId} token={auth.token} onLogout={logout} />;
 }
 
 const s: Record<string, React.CSSProperties> = {

@@ -13,9 +13,9 @@ const NAV = [
 ];
 
 export default function DashboardLayout({
-  storeId, token,
+  storeId, token, onLogout,
 }: {
-  storeId: string; token: string;
+  storeId: string; token: string; onLogout: () => void;
 }) {
   const [tab, setTab] = useState<'orders' | 'tables' | 'revenue' | 'menu'>('orders');
 
@@ -33,9 +33,14 @@ export default function DashboardLayout({
             {n.label}
           </button>
         ))}
+        <div style={{ flex: 1 }} />
+        <button style={s.logoutBtn} onClick={onLogout}>
+          🚪 로그아웃
+        </button>
       </aside>
 
       <main style={s.main}>
+        <div style={s.statusBar}>🟢 로그인됨</div>
         {tab === 'orders'  && <OrdersPanel  storeId={storeId} token={token} />}
         {tab === 'tables'  && <TablesPanel  storeId={storeId} token={token} />}
         {tab === 'revenue' && <RevenuePanel storeId={storeId} token={token} />}
@@ -65,6 +70,8 @@ const s: Record<string, React.CSSProperties> = {
   logoAccent:    { color: '#60a5fa' },
   navBtn:        { display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px', borderRadius: 10, border: 'none', background: 'none', color: '#94a3b8', fontSize: 14, fontWeight: 600, cursor: 'pointer', textAlign: 'left', width: '100%' },
   navBtnActive:  { background: '#2563eb', color: '#fff' },
+  logoutBtn:     { display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px', borderRadius: 10, border: '1px solid #334155', background: 'none', color: '#f87171', fontSize: 14, fontWeight: 600, cursor: 'pointer', textAlign: 'left', width: '100%', marginTop: 8 },
+  statusBar:     { fontSize: 13, fontWeight: 700, color: '#16a34a', marginBottom: 12 },
   main:          { flex: 1, overflow: 'auto', padding: '24px' },
   placeholder:   { display: 'flex', alignItems: 'center', justifyContent: 'center', height: 300, fontSize: 18, color: '#94a3b8' },
   mobileNav:     { display: 'none' },
