@@ -17,8 +17,10 @@ const STATUS_CONFIG = {
 };
 
 export default function TablesPanel({ storeId, token }: { storeId: string; token: string }) {
-  const [tables,  setTables]  = useState<TableRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [tables,    setTables]    = useState<TableRow[]>([]);
+  const [loading,   setLoading]   = useState(true);
+  const [storeSlug, setStoreSlug] = useState('');
+  const [origin,    setOrigin]    = useState('');
 
   const { joinStore, on } = useSocket(token);
 
@@ -27,12 +29,16 @@ export default function TablesPanel({ storeId, token }: { storeId: string; token
       headers: { Authorization: `Bearer ${token}` },
     });
     const data = await res.json();
-    if (data.ok) setTables(data.data.tables);
+    if (data.ok) {
+      setTables(data.data.tables);
+      if (data.data.storeSlug) setStoreSlug(data.data.storeSlug);
+    }
     setLoading(false);
   }, [storeId, token]);
 
   useEffect(() => {
     load();
+    setOrigin(window.location.origin);
     joinStore(storeId);
 
     const off = on<{ tableId: string; status: string }>(
@@ -58,6 +64,27 @@ export default function TablesPanel({ storeId, token }: { storeId: string; token
       </div>
 
       <div style={s.grid}>
+        {/* 포장 QR 카드 */}
+        {storeSlug && origin && (() => {
+          const takeoutUrl = `${origin}/order/${storeSlug}/takeout`;
+          return (
+            <div style={{ ...s.tableCard, background: '#f0f9ff', border: '2px solid #7dd3fc', alignItems: 'center', gap: 8 }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: '#0369a1' }}>📦 포장 QR</div>
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(takeoutUrl)}`}
+                alt="포장 주문 QR"
+                style={{ borderRadius: 6 }}
+              />
+              <button
+                style={{ fontSize: 11, color: '#0369a1', background: 'none', border: '1px solid #7dd3fc', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', width: '100%' }}
+                onClick={() => navigator.clipboard.writeText(takeoutUrl)}
+              >
+                URL 복사
+              </button>
+            </div>
+          );
+        })()}
+
         {tables.map(table => {
           const cfg = STATUS_CONFIG[table.status as keyof typeof STATUS_CONFIG]
             ?? STATUS_CONFIG.empty;

@@ -1,7 +1,7 @@
 // GET /api/dashboard/tables?storeId=
 import { NextRequest } from 'next/server';
 import { requireAuth, requireStoreAccess } from '@/lib/auth';
-import { query } from '@/lib/db';
+import { query, queryOne } from '@/lib/db';
 import { ok, fail, forbidden, serverError } from '@/lib/response';
 
 export async function GET(req: NextRequest) {
@@ -39,7 +39,10 @@ export async function GET(req: NextRequest) {
       [storeId]
     );
 
-    return ok({ tables });
+    const storeInfo = await queryOne<{ slug: string }>(
+      `SELECT slug FROM stores WHERE id = $1`, [storeId]
+    );
+    return ok({ tables, storeSlug: storeInfo?.slug ?? '' });
   } catch (err) {
     return serverError(err);
   }

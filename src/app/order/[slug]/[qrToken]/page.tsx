@@ -13,6 +13,7 @@ export default function OrderPage({
   params: { slug: string; qrToken: string };
 }) {
   const { slug, qrToken } = params;
+  const isTakeout = !qrToken;
   const cart = useCart();
 
   const [store,      setStore]      = useState<{ id: string; name: string; notice: string | null; is_open: boolean } | null>(null);
@@ -47,27 +48,27 @@ export default function OrderPage({
   useEffect(() => {
     (async () => {
       try {
-        const [menuRes, tableRes] = await Promise.all([
-          fetch(`/api/store/${slug}/menu`),
-          fetch(`/api/store/${slug}/table/${qrToken}`),
-        ]);
-        const menuData  = await menuRes.json();
-        const tableData = await tableRes.json();
-
-        if (!menuRes.ok)  throw new Error(menuData.message);
-        if (!tableRes.ok) throw new Error(tableData.message);
+        const menuRes  = await fetch(`/api/store/${slug}/menu`);
+        const menuData = await menuRes.json();
+        if (!menuRes.ok) throw new Error(menuData.message);
 
         setStore(menuData.data.store);
         setCategories(menuData.data.categories);
-        setTable(tableData.data.table);
         setActivecat(menuData.data.categories[0]?.id ?? '');
+
+        if (!isTakeout) {
+          const tableRes  = await fetch(`/api/store/${slug}/table/${qrToken}`);
+          const tableData = await tableRes.json();
+          if (!tableRes.ok) throw new Error(tableData.message);
+          setTable(tableData.data.table);
+        }
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : '메뉴를 불러올 수 없습니다');
       } finally {
         setLoading(false);
       }
     })();
-  }, [slug, qrToken]);
+  }, [slug, qrToken, isTakeout]);
 
   // ── 카테고리 탭 스크롤 ──────────────────────────────────────────
   const scrollTocat = (id: string) => {
@@ -77,7 +78,7 @@ export default function OrderPage({
 
   // ── 주문 제출 ──────────────────────────────────────────────────
   const submitOrder = async () => {
-    if (!table) return;
+    if (!isTakeout && !table) return;
     setPayLoading(true);
     setError('');
     try {
@@ -86,8 +87,8 @@ export default function OrderPage({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           storeId:     store?.id,
-          tableId:     table.id,
-          type:        'dine_in',
+          tableId:     isTakeout ? undefined : table?.id,
+          type:        isTakeout ? 'takeout' : 'dine_in',
           items:       cart.items.map(i => ({
             menuId:            i.menuId,
             quantity:          i.quantity,
@@ -191,7 +192,9 @@ export default function OrderPage({
         <header style={styles.header}>
           <div style={styles.headerInner}>
             <span style={styles.storeName}>{store?.name}</span>
-            <span style={styles.tableBadge}>🪑 {table?.table_number}</span>
+            <span style={styles.tableBadge}>
+              {isTakeout ? '📦 포장' : `🪑 ${table?.table_number}`}
+            </span>
           </div>
           {store?.notice && (
             <div style={styles.notice}>📢 {store.notice}</div>

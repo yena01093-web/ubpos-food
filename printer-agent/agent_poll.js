@@ -105,6 +105,25 @@ async function printTo(portName, baudRate, data) {
     });
   });
 }
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function printWithRetry(portName, baudRate, data, label, retries = 2) {
+  for (let i = 0; i <= retries; i++) {
+    try {
+      await printTo(portName, baudRate, data);
+      console.log(`[${label}] 출력 완료`);
+      return;
+    } catch(e) {
+      if (i < retries) {
+        console.log(`[${label}] 재시도 중... (${e.message})`);
+        await delay(800);
+      } else {
+        console.error(`[${label}] 오류: ${e.message}`);
+      }
+    }
+  }
+}
+
 
 let token = '';
 let lastCheck = new Date(Date.now() - 10000).toISOString();
@@ -147,15 +166,10 @@ async function poll() {
 
       console.log(`[주문] ${order.order_number} 수신 - 프린트 시작`);
 
-      try {
-        await printTo(CONFIG.RECEIPT_PORT, CONFIG.RECEIPT_BAUD, buildReceipt(order));
-        console.log(`[영수증] 출력 완료`);
-      } catch(e) { console.error(`[영수증] 오류: ${e.message}`); }
-
-      try {
-        await printTo(CONFIG.KITCHEN_PORT, CONFIG.KITCHEN_BAUD, buildKitchen(order));
-        console.log(`[주방] 출력 완료`);
-      } catch(e) { console.error(`[주방] 오류: ${e.message}`); }
+      await printWithRetry(CONFIG.RECEIPT_PORT, CONFIG.RECEIPT_BAUD, buildReceipt(order), '영수증');
+      await delay(500); // 포트 완전히 닫힐 시간 확보
+      await printWithRetry(CONFIG.KITCHEN_PORT, CONFIG.KITCHEN_BAUD, buildKitchen(order), '주방');
+      await delay(500);
     }
   } catch(e) {
     console.error('[POLL] 오류:', e.message);
