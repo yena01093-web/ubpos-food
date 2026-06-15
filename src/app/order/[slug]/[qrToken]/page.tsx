@@ -9,8 +9,8 @@ const fmt = (n: number) => n.toLocaleString('ko-KR') + '원';
 // ── 가맹점 사업자 정보 (실제 정보로 교체하세요) ──────────────────
 const STORE_LEGAL = {
   name:   '슈퍼크리스피 제천점',
-  ceo:    '홍길동',
-  bizNo:  '000-00-00000',
+  ceo:    '박선호',
+  bizNo:  '207-11-50669',
   address:'충북 제천시 의림대로 342 1층',
   tel:    '043-756-8077',
 };
