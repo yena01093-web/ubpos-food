@@ -24,10 +24,7 @@ export async function POST(req: NextRequest) {
     const ext      = file.name.split('.').pop() ?? 'jpg';
     const filename = `menus/${menuId}.${ext}`;
 
-    const blob = await put(filename, file, {
-      access:    'public',
-      allowedContentTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
-    });
+    const blob = await put(filename, file, { access: 'public' });
 
     return ok({ imageUrl: blob.url });
   } catch (err) {
