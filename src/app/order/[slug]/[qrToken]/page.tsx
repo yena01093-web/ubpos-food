@@ -6,6 +6,15 @@ import type { CategoryWithMenus, MenuWithOptions } from '@/types';
 // ── 가격 포맷 ────────────────────────────────────────────────────
 const fmt = (n: number) => n.toLocaleString('ko-KR') + '원';
 
+// ── 가맹점 사업자 정보 (실제 정보로 교체하세요) ──────────────────
+const STORE_LEGAL = {
+  name:   '슈퍼크리스피 제천점',
+  ceo:    '홍길동',
+  bizNo:  '000-00-00000',
+  address:'충북 제천시 의림대로 342 1층',
+  tel:    '043-756-8077',
+};
+
 // ── 메인 페이지 ──────────────────────────────────────────────────
 export default function OrderPage({
   params,
@@ -237,7 +246,8 @@ export default function OrderPage({
               </div>
             </div>
           ))}
-          <div style={{ height: 120 }} />
+          <StoreFooter />
+          <div style={{ height: 100 }} />
         </main>
 
         {/* 장바구니 플로팅 버튼 */}
@@ -586,6 +596,22 @@ function DoneModal({ orderId, onClose }: { orderId: string; onClose: () => void 
   );
 }
 
+// ── 푸터 ──────────────────────────────────────────────────────────
+function StoreFooter() {
+  return (
+    <footer style={styles.footer}>
+      <div style={styles.footerName}>{STORE_LEGAL.name}</div>
+      <div style={styles.footerRow}>
+        <span>대표자 {STORE_LEGAL.ceo}</span>
+        <span style={styles.footerDot}>|</span>
+        <span>사업자등록번호 {STORE_LEGAL.bizNo}</span>
+      </div>
+      <div style={styles.footerRow}>{STORE_LEGAL.address}</div>
+      <div style={styles.footerRow}>고객센터&nbsp;<a href={`tel:${STORE_LEGAL.tel}`} style={styles.footerTel}>{STORE_LEGAL.tel}</a></div>
+    </footer>
+  );
+}
+
 // ── 로딩 / 에러 ────────────────────────────────────────────────────
 function LoadingScreen() {
   return (
@@ -668,4 +694,9 @@ const styles: Record<string, React.CSSProperties> = {
   confirmItem:    { display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f3f4f6', fontSize: 14 },
   noteDisplay:    { marginTop: 12, padding: 10, background: '#f9fafb', borderRadius: 8, fontSize: 13, color: '#6b7280' },
   errorMsg:       { color: '#ef4444', fontSize: 13, margin: '8px 0', textAlign: 'center' },
+  footer:         { margin: '24px 0 0', padding: '20px 16px', borderTop: '1px solid #e5e7eb', background: '#f9fafb', display: 'flex', flexDirection: 'column', gap: 6 },
+  footerName:     { fontSize: 13, fontWeight: 700, color: '#6b7280' },
+  footerRow:      { fontSize: 12, color: '#9ca3af', lineHeight: 1.6, display: 'flex', flexWrap: 'wrap', gap: '0 6px', alignItems: 'center' },
+  footerDot:      { color: '#d1d5db' },
+  footerTel:      { color: '#6b7280', textDecoration: 'none', fontWeight: 600 },
 };
