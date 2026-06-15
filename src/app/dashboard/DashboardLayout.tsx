@@ -4,12 +4,14 @@ import OrdersPanel  from './OrdersPanel';
 import TablesPanel  from './TablesPanel';
 import RevenuePanel from './RevenuePanel';
 import MenuPanel    from './MenuPanel';
+import ChannelPanel from './ChannelPanel';
 
 const NAV = [
-  { id: 'orders',  label: '📋 주문'  },
+  { id: 'orders',  label: '📋 주문'   },
   { id: 'tables',  label: '🪑 테이블' },
-  { id: 'revenue', label: '📊 매출'  },
-  { id: 'menu',    label: '🍔 메뉴'  },
+  { id: 'revenue', label: '📊 매출'   },
+  { id: 'menu',    label: '🍔 메뉴'   },
+  { id: 'channel', label: '🌐 채널관리' },
 ];
 
 export default function DashboardLayout({
@@ -17,7 +19,7 @@ export default function DashboardLayout({
 }: {
   storeId: string; token: string; onLogout: () => void;
 }) {
-  const [tab, setTab] = useState<'orders' | 'tables' | 'revenue' | 'menu'>('orders');
+  const [tab, setTab] = useState<'orders' | 'tables' | 'revenue' | 'menu' | 'channel'>('orders');
 
   return (
     <div style={s.root}>
@@ -28,7 +30,7 @@ export default function DashboardLayout({
           <button
             key={n.id}
             style={{ ...s.navBtn, ...(tab === n.id ? s.navBtnActive : {}) }}
-            onClick={() => setTab(n.id as 'orders'|'tables'|'revenue'|'menu')}
+            onClick={() => setTab(n.id as 'orders'|'tables'|'revenue'|'menu'|'channel')}
           >
             {n.label}
           </button>
@@ -45,6 +47,7 @@ export default function DashboardLayout({
         {tab === 'tables'  && <TablesPanel  storeId={storeId} token={token} />}
         {tab === 'revenue' && <RevenuePanel storeId={storeId} token={token} />}
         {tab === 'menu'    && <MenuPanel    storeId={storeId} token={token} />}
+        {tab === 'channel' && <ChannelPanel />}
       </main>
 
       {/* 모바일 하단 탭 */}
@@ -53,7 +56,7 @@ export default function DashboardLayout({
           <button
             key={n.id}
             style={{ ...s.mobileTab, ...(tab === n.id ? s.mobileTabActive : {}) }}
-            onClick={() => setTab(n.id as 'orders'|'tables'|'revenue'|'menu')}
+            onClick={() => setTab(n.id as 'orders'|'tables'|'revenue'|'menu'|'channel')}
           >
             {n.label}
           </button>
