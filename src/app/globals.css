@@ -18,3 +18,5 @@ img { display: block; }
 /* 스크롤바 숨김 (카테고리 탭) */
 nav::-webkit-scrollbar { display: none; }
 nav { -ms-overflow-style: none; scrollbar-width: none; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
