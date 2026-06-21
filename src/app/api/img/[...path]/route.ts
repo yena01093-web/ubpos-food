@@ -2,29 +2,24 @@
 import { NextRequest } from 'next/server';
 import { head } from '@vercel/blob';
 
+// BLOB_STORE_ID = "store_WPt7gs5zyisfzioz"
+// blob domain  = "wpt7gs5zyisfzioz"  (remove "store_", lowercase)
+const storeId  = (process.env.BLOB_STORE_ID ?? '').replace('store_', '').toLowerCase();
+const BLOB_BASE = `https://${storeId || 'wpt7gs5zyisfzioz'}.private.blob.vercel-storage.com`;
+
 export async function GET(
   _req: NextRequest,
   { params }: { params: { path: string[] } }
 ) {
   try {
-    const storeId  = process.env.BLOB_STORE_ID ?? '';
     const blobPath = params.path.join('/');
+    const blobUrl  = `${BLOB_BASE}/${blobPath}`;
 
-    // Debug: show the constructed URL and store ID prefix
-    const blobUrl = `https://${storeId}.private.blob.vercel-storage.com/${blobPath}`;
-
-    // Test: add diagnostics before calling head()
-    const diag = {
-      storeIdLength: storeId.length,
-      storeIdPrefix: storeId.substring(0, 6),
-      blobUrlPrefix:  blobUrl.substring(0, 60),
-    };
-
-    const info = await head(blobUrl);
-
+    const info   = await head(blobUrl);
     const imgRes = await fetch(info.downloadUrl);
+
     if (!imgRes.ok) {
-      return new Response(JSON.stringify({ error: `download ${imgRes.status}` }), {
+      return new Response(JSON.stringify({ error: `blob ${imgRes.status}` }), {
         status: imgRes.status, headers: { 'Content-Type': 'application/json' },
       });
     }
@@ -34,18 +29,13 @@ export async function GET(
       headers: {
         'Content-Type': info.contentType ?? 'image/jpeg',
         'Cache-Control': 'public, max-age=86400',
-        'X-Debug': JSON.stringify(diag),
       },
     });
   } catch (err) {
-    const storeId = process.env.BLOB_STORE_ID ?? '';
-    const blobPath = params.path.join('/');
     const msg = err instanceof Error ? err.message : String(err);
-    return new Response(JSON.stringify({
-      error: msg,
-      storeIdLength: storeId.length,
-      storeIdPrefix: storeId.substring(0, 8),
-      blobPath,
-    }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ error: msg, base: BLOB_BASE }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 }
