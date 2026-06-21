@@ -1,29 +1,32 @@
 // GET /api/img/[...path] — private Vercel Blob → public proxy
-// Uses @vercel/blob head() (which uses BLOB_STORE_ID + Vercel system auth)
-// then fetches the signed downloadUrl server-side and streams it to the client
 import { NextRequest } from 'next/server';
 import { head } from '@vercel/blob';
-
-const STORE_ID = process.env.BLOB_STORE_ID ?? 'wpt7gs5zyisfzioz';
 
 export async function GET(
   _req: NextRequest,
   { params }: { params: { path: string[] } }
 ) {
   try {
+    const storeId  = process.env.BLOB_STORE_ID ?? '';
     const blobPath = params.path.join('/');
-    const blobUrl  = `https://${STORE_ID}.private.blob.vercel-storage.com/${blobPath}`;
 
-    // head() uses Vercel's internal auth (BLOB_STORE_ID mechanism)
+    // Debug: show the constructed URL and store ID prefix
+    const blobUrl = `https://${storeId}.private.blob.vercel-storage.com/${blobPath}`;
+
+    // Test: add diagnostics before calling head()
+    const diag = {
+      storeIdLength: storeId.length,
+      storeIdPrefix: storeId.substring(0, 6),
+      blobUrlPrefix:  blobUrl.substring(0, 60),
+    };
+
     const info = await head(blobUrl);
 
-    // Fetch downloadUrl server-side (within Vercel network - avoids public 403)
     const imgRes = await fetch(info.downloadUrl);
     if (!imgRes.ok) {
-      return new Response(
-        JSON.stringify({ error: `download ${imgRes.status}`, url: info.downloadUrl.substring(0, 80) }),
-        { status: imgRes.status, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: `download ${imgRes.status}` }), {
+        status: imgRes.status, headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     const data = await imgRes.arrayBuffer();
@@ -31,13 +34,18 @@ export async function GET(
       headers: {
         'Content-Type': info.contentType ?? 'image/jpeg',
         'Cache-Control': 'public, max-age=86400',
+        'X-Debug': JSON.stringify(diag),
       },
     });
   } catch (err) {
+    const storeId = process.env.BLOB_STORE_ID ?? '';
+    const blobPath = params.path.join('/');
     const msg = err instanceof Error ? err.message : String(err);
-    return new Response(JSON.stringify({ error: msg }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return new Response(JSON.stringify({
+      error: msg,
+      storeIdLength: storeId.length,
+      storeIdPrefix: storeId.substring(0, 8),
+      blobPath,
+    }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }
 }
