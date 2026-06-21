@@ -29,7 +29,9 @@ export async function POST(req: NextRequest) {
 
     const blob = await put(filename, file, { access: 'private' });
 
-    return ok({ imageUrl: blob.downloadUrl });
+    // Serve through proxy so private blobs are publicly viewable
+    const proxyUrl = `/api/img/${filename}`;
+    return ok({ imageUrl: proxyUrl });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error('[Upload Error]', err);
