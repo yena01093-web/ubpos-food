@@ -1,50 +1,36 @@
 // GET /api/img/[...path] — private Vercel Blob → public proxy
+// Uses @vercel/blob head() (which uses BLOB_STORE_ID + Vercel system auth)
+// then fetches the signed downloadUrl server-side and streams it to the client
 import { NextRequest } from 'next/server';
+import { head } from '@vercel/blob';
 
-const STORE_ID = 'wpt7gs5zyisfzioz';
-
-// @vercel/blob checks these env var names in order
-const TOKEN =
-  process.env.BLOB_READ_WRITE_TOKEN ??
-  process.env.VERCEL_BLOB_READ_WRITE_TOKEN ??
-  '';
+const STORE_ID = process.env.BLOB_STORE_ID ?? 'wpt7gs5zyisfzioz';
 
 export async function GET(
   _req: NextRequest,
   { params }: { params: { path: string[] } }
 ) {
-  // Debug: find all BLOB-related env vars (names only, no values)
-  const blobEnvKeys = Object.keys(process.env).filter(k =>
-    k.toUpperCase().includes('BLOB')
-  );
-
-  if (!TOKEN) {
-    return new Response(
-      JSON.stringify({ error: 'No token', blobEnvKeys }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    );
-  }
-
   try {
     const blobPath = params.path.join('/');
     const blobUrl  = `https://${STORE_ID}.private.blob.vercel-storage.com/${blobPath}`;
 
-    const res = await fetch(blobUrl, {
-      headers: { Authorization: `Bearer ${TOKEN}` },
-    });
+    // head() uses Vercel's internal auth (BLOB_STORE_ID mechanism)
+    const info = await head(blobUrl);
 
-    if (!res.ok) {
+    // Fetch downloadUrl server-side (within Vercel network - avoids public 403)
+    const imgRes = await fetch(info.downloadUrl);
+    if (!imgRes.ok) {
       return new Response(
-        JSON.stringify({ error: `Blob fetch ${res.status}`, blobUrl }),
-        { status: res.status, headers: { 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: `download ${imgRes.status}`, url: info.downloadUrl.substring(0, 80) }),
+        { status: imgRes.status, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
-    const data = await res.arrayBuffer();
+    const data = await imgRes.arrayBuffer();
     return new Response(data, {
       headers: {
-        'Content-Type': res.headers.get('Content-Type') ?? 'image/jpeg',
-        'Cache-Control': 'public, max-age=31536000, immutable',
+        'Content-Type': info.contentType ?? 'image/jpeg',
+        'Cache-Control': 'public, max-age=86400',
       },
     });
   } catch (err) {
