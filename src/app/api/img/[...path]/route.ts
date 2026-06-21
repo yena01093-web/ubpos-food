@@ -1,11 +1,9 @@
 // GET /api/img/[...path] — private Vercel Blob → public proxy
 import { NextRequest } from 'next/server';
 
-export const runtime = 'edge';
-
 export async function GET(
   _req: NextRequest,
-  { params }: { params: Promise<{ path: string[] }> }
+  { params }: { params: { path: string[] } }
 ) {
   const token = process.env.BLOB_READ_WRITE_TOKEN;
   if (!token) return new Response('No token', { status: 500 });
@@ -13,10 +11,9 @@ export async function GET(
   // Token format: vercel_blob_rw_<storeId>_<secret>
   const parts = token.split('_');
   const storeId = parts[3];
-  if (!storeId) return new Response('Bad token', { status: 500 });
+  if (!storeId) return new Response('Bad token format', { status: 500 });
 
-  const { path } = await params;
-  const blobPath = path.join('/');
+  const blobPath = params.path.join('/');
   const blobUrl  = `https://${storeId}.private.blob.vercel-storage.com/${blobPath}`;
 
   const res = await fetch(blobUrl, {
