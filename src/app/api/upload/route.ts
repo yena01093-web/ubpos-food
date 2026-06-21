@@ -27,9 +27,9 @@ export async function POST(req: NextRequest) {
     const targetId = menuId ?? categoryId;
     const filename = `${folder}/${targetId}.${ext}`;
 
-    const blob = await put(filename, file, { access: 'public' });
+    const blob = await put(filename, file, { access: 'private' });
 
-    return ok({ imageUrl: blob.url });
+    return ok({ imageUrl: blob.downloadUrl });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error('[Upload Error]', err);
