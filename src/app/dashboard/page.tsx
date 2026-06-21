@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import DashboardLayout from './DashboardLayout';
+import DashboardLayout from './dashboardlayout';
 
 export default function DashboardPage() {
   const [auth,    setAuth]    = useState<{ token: string; storeId: string } | null>(null);

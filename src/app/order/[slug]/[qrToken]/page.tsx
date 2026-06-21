@@ -234,6 +234,11 @@ export default function OrderPage({
               ref={el => { catRefs.current[cat.id] = el; }}
               style={styles.catSection}
             >
+              {cat.image_url && (
+                <div style={styles.catBanner}>
+                  <img src={cat.image_url} alt={cat.name} style={styles.catBannerImg} />
+                </div>
+              )}
               <h2 style={styles.catTitle}>{cat.name}</h2>
               <div style={styles.menuGrid}>
                 {cat.menus.map(menu => (
@@ -648,6 +653,8 @@ const styles: Record<string, React.CSSProperties> = {
   catTabActive:   { color: '#2563eb', borderBottom: '3px solid #2563eb', fontWeight: 700 },
   main:           { padding: '0 0 16px' },
   catSection:     { padding: '20px 16px 0' },
+  catBanner:      { margin: '-20px -16px 12px', height: 160, overflow: 'hidden' },
+  catBannerImg:   { width: '100%', height: '100%', objectFit: 'cover' },
   catTitle:       { fontSize: 16, fontWeight: 700, color: '#111827', marginBottom: 12 },
   menuGrid:       { display: 'flex', flexDirection: 'column', gap: 8 },
   menuCard:       { display: 'flex', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden', cursor: 'pointer', textAlign: 'left', padding: 0, width: '100%' },

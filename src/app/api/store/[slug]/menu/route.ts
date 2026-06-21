@@ -21,8 +21,8 @@ export async function GET(
     if (!store) return notFound('가맹점을 찾을 수 없습니다');
 
     // 2. 카테고리 조회
-    const categories = await query<{ id: string; name: string; sort_order: number }>(
-      `SELECT id, name, sort_order
+    const categories = await query<{ id: string; name: string; sort_order: number; image_url: string | null }>(
+      `SELECT id, name, sort_order, image_url
        FROM categories
        WHERE store_id = $1 AND is_active = true
        ORDER BY sort_order`,

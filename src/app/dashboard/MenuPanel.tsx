@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 
 const fmt = (n: number) => n.toLocaleString('ko-KR') + '원';
 
-interface Category { id: string; name: string; sort_order: number; }
+interface Category { id: string; name: string; sort_order: number; image_url: string | null; }
 interface Menu {
   id: string; category_id: string | null; name: string;
   description: string | null; price: number; image_url: string | null;
@@ -21,10 +21,15 @@ export default function MenuPanel({ storeId, token }: { storeId: string; token: 
   const [form,     setForm]     = useState({ name:'', price:'', description:'', categoryId:'' });
   const [saving,   setSaving]   = useState(false);
 
-  // 이미지 업로드
+  // 메뉴 이미지 업로드
   const fileInputRef                          = useRef<HTMLInputElement>(null);
   const [targetMenuId, setTargetMenuId]       = useState<string | null>(null);
   const [uploading,    setUploading]          = useState<Record<string, boolean>>({});
+
+  // 카테고리 배너 업로드
+  const catFileInputRef                       = useRef<HTMLInputElement>(null);
+  const [targetCatId,  setTargetCatId]        = useState<string | null>(null);
+  const [catUploading, setCatUploading]       = useState<Record<string, boolean>>({});
 
   const load = useCallback(async () => {
     const res  = await fetch(`/api/dashboard/menu?storeId=${storeId}`, {
@@ -81,7 +86,53 @@ export default function MenuPanel({ storeId, token }: { storeId: string; token: 
     setSaving(false);
   };
 
-  // ── 이미지 업로드 ─────────────────────────────────────────────
+  // ── 카테고리 배너 업로드 ──────────────────────────────────────
+  const openCatFilePicker = (catId: string) => {
+    setTargetCatId(catId);
+    catFileInputRef.current?.click();
+  };
+
+  const handleCatFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !targetCatId) return;
+
+    const catId = targetCatId;
+    setTargetCatId(null);
+    setCatUploading(prev => ({ ...prev, [catId]: true }));
+
+    try {
+      const fd = new FormData();
+      fd.append('file',       file);
+      fd.append('categoryId', catId);
+
+      const upRes  = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
+      const upData = await upRes.json();
+      if (!upData.ok) throw new Error(upData.message ?? '업로드 실패');
+
+      const patchRes  = await fetch(`/api/dashboard/category/${catId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ image_url: upData.data.imageUrl }),
+      });
+      const patchData = await patchRes.json();
+      if (!patchData.ok) throw new Error(patchData.message ?? '저장 실패');
+
+      setCategories(prev => prev.map(c =>
+        c.id === catId ? { ...c, image_url: upData.data.imageUrl } : c
+      ));
+    } catch (err) {
+      alert('업로드 오류: ' + (err instanceof Error ? err.message : '알 수 없는 오류'));
+    } finally {
+      setCatUploading(prev => ({ ...prev, [catId]: false }));
+    }
+  };
+
+  // ── 메뉴 이미지 업로드 ────────────────────────────────────────
   const openFilePicker = (menuId: string) => {
     setTargetMenuId(menuId);
     fileInputRef.current?.click();
@@ -137,13 +188,21 @@ export default function MenuPanel({ storeId, token }: { storeId: string; token: 
 
   return (
     <div style={s.root}>
-      {/* 숨김 파일 input (공유) */}
+      {/* 숨김 파일 input - 메뉴 이미지 */}
       <input
         ref={fileInputRef}
         type="file"
         accept="image/*"
         style={{ display:'none' }}
         onChange={handleFileChange}
+      />
+      {/* 숨김 파일 input - 카테고리 배너 */}
+      <input
+        ref={catFileInputRef}
+        type="file"
+        accept="image/*"
+        style={{ display:'none' }}
+        onChange={handleCatFileChange}
       />
 
       <div style={s.topBar}>
@@ -203,6 +262,30 @@ export default function MenuPanel({ storeId, token }: { storeId: string; token: 
           </button>
         </div>
       )}
+
+      {/* 카테고리 배너 이미지 */}
+      {activeCat !== 'all' && (() => {
+        const cat = categories.find(c => c.id === activeCat);
+        if (!cat) return null;
+        const isCatUploading = !!catUploading[activeCat];
+        return (
+          <div style={s.catBannerSection}>
+            <span style={s.catBannerLabel}>배너 이미지</span>
+            {isCatUploading ? (
+              <div style={s.catBannerEmpty}><span style={s.spinner} /> 업로드 중...</div>
+            ) : cat.image_url ? (
+              <div style={s.catBannerPreview}>
+                <img src={cat.image_url} alt={cat.name} style={s.catBannerImg} />
+                <button style={s.catBannerChangeBtn} onClick={() => openCatFilePicker(cat.id)}>🖼 변경</button>
+              </div>
+            ) : (
+              <div style={s.catBannerEmpty}>
+                <button style={s.catBannerBtn} onClick={() => openCatFilePicker(cat.id)}>📷 배너 이미지 업로드</button>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* 메뉴 목록 */}
       <div style={s.menuList}>
@@ -272,6 +355,14 @@ const s: Record<string, React.CSSProperties> = {
   formGrid:       { display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:14 },
   input:          { padding:'10px 14px', border:'1.5px solid #e2e8f0', borderRadius:10, fontSize:14, outline:'none', width:'100%', boxSizing:'border-box' },
   saveBtn:        { background:'#1e3a5f', color:'#fff', border:'none', borderRadius:10, padding:'12px 28px', fontSize:14, fontWeight:700, cursor:'pointer' },
+
+  catBannerSection:   { background:'#fff', borderRadius:12, padding:'14px 16px', boxShadow:'0 1px 3px rgba(0,0,0,0.05)', display:'flex', flexDirection:'column', gap:10 },
+  catBannerLabel:     { fontSize:13, fontWeight:600, color:'#64748b' },
+  catBannerPreview:   { position:'relative', width:'100%', height:120, borderRadius:10, overflow:'hidden' },
+  catBannerImg:       { width:'100%', height:'100%', objectFit:'cover' },
+  catBannerChangeBtn: { position:'absolute', bottom:8, right:8, background:'rgba(0,0,0,0.55)', color:'#fff', border:'none', borderRadius:8, padding:'6px 12px', fontSize:12, fontWeight:600, cursor:'pointer' },
+  catBannerEmpty:     { height:80, background:'#f8fafc', borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center', border:'1.5px dashed #e2e8f0', fontSize:13, color:'#94a3b8', gap:8 },
+  catBannerBtn:       { background:'none', border:'none', fontSize:13, fontWeight:600, color:'#2563eb', cursor:'pointer' },
 
   menuList:       { display:'flex', flexDirection:'column', gap:8 },
   empty:          { color:'#cbd5e1', textAlign:'center', padding:'40px 0', fontSize:14 },

@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     const targetId = menuId ?? categoryId;
     const filename = `${folder}/${targetId}.${ext}`;
 
-    const blob = await put(filename, file, { access: 'private' });
+    const blob = await put(filename, file, { access: 'private', allowOverwrite: true });
 
     // Serve through proxy so private blobs are publicly viewable
     const proxyUrl = `/api/img/${filename}`;

@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
     if (!requireStoreAccess(auth!, storeId)) return forbidden();
 
     const categories = await query(
-      `SELECT id, name, sort_order FROM categories
+      `SELECT id, name, sort_order, image_url FROM categories
        WHERE store_id = $1 AND is_active = true ORDER BY sort_order`,
       [storeId]
     );

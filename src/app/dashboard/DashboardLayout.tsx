@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import OrdersPanel  from './OrdersPanel';
+import OrdersPanel  from './orderspanel';
 import TablesPanel  from './TablesPanel';
 import RevenuePanel from './RevenuePanel';
 import MenuPanel    from './MenuPanel';
