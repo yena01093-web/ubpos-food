@@ -91,6 +91,32 @@ export async function GET() {
       results.push(swapped.map(m => m.name).join(', '));
     }
 
+    // 8. 콤보팩/패밀리팩 → 세트 카테고리로 복구 + 활성화
+    const setCat = cats.find(c => c.name === '세트');
+    if (setCat) {
+      // 현재 콤보팩 위치 파악
+      const comboCurrent = await query<{ id: string; name: string; category_id: string | null; is_active: boolean }>(
+        `SELECT id, name, category_id, is_active FROM menus
+         WHERE store_id = $1 AND (name ILIKE '%콤보팩%' OR name ILIKE '%패밀리팩%')`,
+        [storeId]
+      );
+      results.push(`콤보팩/패밀리팩 현황: ${comboCurrent.length}개 — ${comboCurrent.map(m => `${m.name}(cat=${m.category_id},active=${m.is_active})`).join(', ')}`);
+
+      // 세트 카테고리로 이동 + 활성화
+      const comboFix = await query<{ id: string; name: string }>(
+        `UPDATE menus
+         SET category_id = $1, is_active = true
+         WHERE store_id = $2
+           AND (name ILIKE '%콤보팩%' OR name ILIKE '%패밀리팩%')
+         RETURNING id, name`,
+        [setCat.id, storeId]
+      );
+      results.push(`콤보팩/패밀리팩 → 세트 fix 완료: ${comboFix.length}개`);
+      if (comboFix.length > 0) results.push(comboFix.map(m => m.name).join(', '));
+    } else {
+      results.push('⚠️ 세트 카테고리 없음 — 콤보팩 fix 스킵');
+    }
+
     return ok({ results });
   } catch (err) {
     return serverError(err);
