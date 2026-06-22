@@ -234,30 +234,35 @@ export default function OrderPage({
             <button
               key={cat.id}
               onClick={() => scrollTocat(cat.id)}
-              style={{
-                ...styles.catTab,
-                ...(activecat === cat.id ? styles.catTabActive : {}),
-              }}
+              style={styles.catTab}
             >
-              {cat.name}
+              <div style={{
+                ...styles.catTabImgBox,
+                outline: activecat === cat.id ? '2.5px solid #E8560A' : '2.5px solid transparent',
+                outlineOffset: '2px',
+              }}>
+                {cat.image_url
+                  ? <img src={cat.image_url} alt={cat.name} style={styles.catTabImg} />
+                  : <div style={{ ...styles.catTabFallback, background: activecat === cat.id ? '#E8560A' : '#f3f4f6', color: activecat === cat.id ? '#fff' : '#9ca3af' }}>{cat.name[0]}</div>
+                }
+              </div>
+              <span style={{ ...styles.catTabText, color: activecat === cat.id ? '#E8560A' : '#6b7280', fontWeight: activecat === cat.id ? 700 : 500 }}>
+                {cat.name}
+              </span>
             </button>
           ))}
         </nav>
 
         {/* 메뉴 목록 */}
         <main style={styles.main}>
+          <BrandHero categories={categories} />
           {categories.map(cat => (
             <div
               key={cat.id}
               ref={el => { catRefs.current[cat.id] = el; }}
               style={styles.catSection}
             >
-              {cat.image_url && (
-                <div style={styles.catBanner}>
-                  <img src={cat.image_url} alt={cat.name} style={styles.catBannerImg} />
-                </div>
-              )}
-              <h2 style={styles.catTitle}>{cat.name}</h2>
+              <h2 style={styles.catTitle}>{cat.name} <span style={styles.catCount}>{cat.menus.length}</span></h2>
               <div style={styles.menuGrid}>
                 {cat.menus.map(menu => (
                   <MenuCard
@@ -329,6 +334,39 @@ export default function OrderPage({
         )}
       </div>
     </>
+  );
+}
+
+// ── 브랜드 히어로 ─────────────────────────────────────────────────
+function BrandHero({ categories }: { categories: CategoryWithMenus[] }) {
+  const chickenCat = categories.find(c => c.name === '치킨') ?? categories[0];
+  const menus = (chickenCat?.menus ?? []).filter(m => m.image_url).slice(0, 8);
+  if (!menus.length) return null;
+  return (
+    <div style={{ background: '#1C0400', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', padding: '18px 16px 8px', gap: 12 }}>
+        <div>
+          <div style={{ fontSize: 33, fontWeight: 900, color: '#FFC300', lineHeight: 0.92, letterSpacing: -1 }}>SUPER</div>
+          <div style={{ fontSize: 33, fontWeight: 900, color: '#FFC300', lineHeight: 0.92, letterSpacing: -1 }}>CRISPY</div>
+          <div style={{ fontSize: 25, fontWeight: 900, color: '#fff', lineHeight: 1.2, letterSpacing: -0.5 }}>CHICKEN</div>
+        </div>
+        <div style={{ marginLeft: 'auto', background: '#E8560A', borderRadius: 6, padding: '3px 10px', fontSize: 12, fontWeight: 700, color: '#fff', alignSelf: 'flex-start' }}>
+          {chickenCat?.name ?? ''}
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '4px 16px 18px' }}>
+        {menus.map(m => (
+          <div key={m.id} style={{ flexShrink: 0, width: 84, textAlign: 'center' }}>
+            <div style={{ width: 84, height: 84, borderRadius: 12, overflow: 'hidden', border: '1.5px solid rgba(255,195,0,0.25)' }}>
+              <img src={m.image_url!} alt={m.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} draggable={false} />
+            </div>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', marginTop: 5, lineHeight: 1.25, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {m.name}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -467,6 +505,9 @@ function MenuCard({ menu, onSelect }: { menu: MenuWithOptions; onSelect: () => v
         )}
         <span style={styles.menuPrice}>{fmt(menu.price)}</span>
       </div>
+      {!menu.is_soldout && (
+        <div style={styles.addCircle} aria-hidden="true">＋</div>
+      )}
     </button>
   );
 }
@@ -780,24 +821,30 @@ const styles: Record<string, React.CSSProperties> = {
   storeName:      { fontSize: 18, fontWeight: 700 },
   tableBadge:     { background: '#E8560A', borderRadius: 20, padding: '4px 12px', fontSize: 13 },
   notice:         { background: '#c44508', fontSize: 12, padding: '8px 0 12px', color: '#ffe4c4' },
-  catNav:         { display: 'flex', gap: 0, overflowX: 'auto', background: '#fff', borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 0, zIndex: 10 },
-  catTab:         { flexShrink: 0, padding: '12px 20px', fontSize: 14, fontWeight: 500, background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', borderBottom: '3px solid transparent' },
-  catTabActive:   { color: '#E8560A', borderBottom: '3px solid #E8560A', fontWeight: 700 },
-  main:           { padding: '0 0 16px' },
-  catSection:     { padding: '20px 16px 0' },
-  catBanner:      { margin: '-20px -16px 12px', height: 160, overflow: 'hidden' },
+  catNav:         { display: 'flex', gap: 0, overflowX: 'auto', background: '#fff', borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 0, zIndex: 10, padding: '8px 8px 0' },
+  catTab:         { flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '0 6px 8px', background: 'none', border: 'none', cursor: 'pointer', minWidth: 60 },
+  catTabActive:   {},
+  catTabImgBox:   { width: 52, height: 52, borderRadius: 12, overflow: 'hidden', flexShrink: 0 },
+  catTabImg:      { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
+  catTabFallback: { width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 700 },
+  catTabText:     { fontSize: 11, lineHeight: 1.2, textAlign: 'center', whiteSpace: 'nowrap' },
+  main:           { padding: '0 0 16px', background: '#f3f4f6' },
+  catSection:     { marginTop: 8, background: '#fff' },
+  catBanner:      { display: 'none' },
   catBannerImg:   { width: '100%', height: '100%', objectFit: 'cover' },
-  catTitle:       { fontSize: 16, fontWeight: 700, color: '#111827', marginBottom: 12 },
-  menuGrid:       { display: 'flex', flexDirection: 'column', gap: 8 },
-  menuCard:       { display: 'flex', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden', cursor: 'pointer', textAlign: 'left', padding: 0, width: '100%' },
+  catTitle:       { fontSize: 15, fontWeight: 800, color: '#111827', margin: 0, padding: '14px 16px 10px', background: '#fff', display: 'flex', alignItems: 'center', gap: 6 },
+  catCount:       { fontSize: 13, fontWeight: 500, color: '#9ca3af' },
+  menuGrid:       { display: 'flex', flexDirection: 'column', gap: 0 },
+  menuCard:       { display: 'flex', alignItems: 'center', background: '#fff', border: 'none', borderBottom: '1px solid #f3f4f6', overflow: 'hidden', cursor: 'pointer', textAlign: 'left', padding: 0, width: '100%' },
   menuCardSoldout:{ opacity: 0.5 },
-  menuImgWrap:    { position: 'relative', width: 90, height: 90, flexShrink: 0 },
+  menuImgWrap:    { position: 'relative', width: 100, height: 100, flexShrink: 0 },
   menuImg:        { width: '100%', height: '100%', objectFit: 'cover' },
   soldoutOverlay: { position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700 },
-  menuInfo:       { padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 4, flex: 1 },
-  menuName:       { fontSize: 15, fontWeight: 600, color: '#111827' },
+  menuInfo:       { padding: '12px 10px', display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 },
+  menuName:       { fontSize: 14, fontWeight: 700, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   menuDesc:       { fontSize: 12, color: '#9ca3af', lineHeight: 1.4 },
-  menuPrice:      { fontSize: 15, fontWeight: 700, color: '#E8560A', marginTop: 'auto' },
+  menuPrice:      { fontSize: 16, fontWeight: 800, color: '#E8560A', marginTop: 4 },
+  addCircle:      { width: 36, height: 36, borderRadius: '50%', background: '#E8560A', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 400, flexShrink: 0, marginRight: 14 },
   cartFloat:      { position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', background: '#E8560A', color: '#fff', border: 'none', borderRadius: 50, padding: '16px 32px', fontSize: 16, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 24px rgba(0,0,0,0.2)', zIndex: 50, whiteSpace: 'nowrap' },
   overlay:        { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'flex-end' },
   modal:          { background: '#fff', borderRadius: '20px 20px 0 0', width: '100%', maxHeight: '90vh', display: 'flex', flexDirection: 'column' },
