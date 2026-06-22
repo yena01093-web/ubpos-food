@@ -7,7 +7,7 @@ export async function GET() {
   try {
     const results: string[] = [];
 
-    // 1. Add image_url to categories if not exists (idempotent)
+    // 1. Add image_url column to categories (idempotent)
     await query(`ALTER TABLE categories ADD COLUMN IF NOT EXISTS image_url TEXT`);
     results.push('categories.image_url: OK');
 
@@ -16,106 +16,85 @@ export async function GET() {
       `SELECT id FROM stores WHERE slug = 'supercrispy-jc'`
     );
     if (stores.length === 0) {
-      results.push('store supercrispy-jc not found — skip category migration');
+      results.push('store supercrispy-jc not found');
       return ok({ results });
     }
     const storeId = stores[0].id;
-    results.push(`store: ${storeId}`);
 
-    // 3. Get current categories
+    // 3. Read current categories
     const cats = await query<{ id: string; name: string; sort_order: number }>(
       `SELECT id, name, sort_order FROM categories WHERE store_id = $1 ORDER BY sort_order`,
       [storeId]
     );
     results.push(`현재 카테고리: ${cats.map(c => `${c.name}(${c.sort_order})`).join(', ')}`);
 
-    // 4. Create 치킨 category if not exists
-    let chickenCatId: string;
-    const chickenCat = cats.find(c => c.name === '치킨');
-    if (!chickenCat) {
-      const newCat = await query<{ id: string }>(
-        `INSERT INTO categories (store_id, name, sort_order, is_active)
-         VALUES ($1, '치킨', 1, true) RETURNING id`,
-        [storeId]
-      );
-      chickenCatId = newCat[0].id;
-      results.push('치킨 카테고리 생성 완료');
-    } else {
-      chickenCatId = chickenCat.id;
-      await query(`UPDATE categories SET sort_order = 1 WHERE id = $1`, [chickenCatId]);
-      results.push('치킨 sort_order → 1 업데이트');
-    }
-
-    // 5. Update sort_orders: 버거=2, 세트=3, 사이드=4
-    const orderMap: Record<string, number> = { '버거': 2, '세트': 3, '사이드': 4 };
-    for (const cat of cats) {
-      if (cat.name in orderMap) {
-        await query(`UPDATE categories SET sort_order = $1 WHERE id = $2`, [orderMap[cat.name], cat.id]);
-        results.push(`${cat.name} sort_order → ${orderMap[cat.name]}`);
+    // Helper: get existing id or insert new category
+    const ensure = async (name: string, sortOrder: number): Promise<string> => {
+      const existing = cats.find(c => c.name === name);
+      if (existing) {
+        await query(
+          `UPDATE categories SET sort_order = $1, is_active = true WHERE id = $2`,
+          [sortOrder, existing.id]
+        );
+        return existing.id;
       }
-    }
+      const rows = await query<{ id: string }>(
+        `INSERT INTO categories (store_id, name, sort_order, is_active)
+         VALUES ($1, $2, $3, true) RETURNING id`,
+        [storeId, name, sortOrder]
+      );
+      results.push(`✅ ${name} 카테고리 생성 (sort_order=${sortOrder})`);
+      return rows[0].id;
+    };
 
-    // 6. 음료 → 음료·소스 rename + sort_order=5
+    // 4. 목표 카테고리 순서 설정
+    // 치킨(1) → 순살치킨(2) → 콤보팩(3) → 버거(4) → 세트(5) → 사이드(6) → 음료·소스(7)
+    const chickenId  = await ensure('치킨', 1);
+    const sunsalId   = await ensure('순살치킨', 2);
+    const comboPakId = await ensure('콤보팩', 3);
+    await ensure('버거', 4);
+    await ensure('세트', 5);
+    await ensure('사이드', 6);
+
+    // 음료 or 음료·소스 → 음료·소스 (sort_order=7)
     const drinkCat = cats.find(c => c.name === '음료' || c.name === '음료·소스');
     if (drinkCat) {
       await query(
-        `UPDATE categories SET name = '음료·소스', sort_order = 5 WHERE id = $1`,
+        `UPDATE categories SET name = '음료·소스', sort_order = 7 WHERE id = $1`,
         [drinkCat.id]
       );
-      results.push(`${drinkCat.name} → 음료·소스 (sort_order=5)`);
     } else {
       await query(
-        `INSERT INTO categories (store_id, name, sort_order, is_active) VALUES ($1, '음료·소스', 5, true)`,
+        `INSERT INTO categories (store_id, name, sort_order, is_active) VALUES ($1, '음료·소스', 7, true)`,
         [storeId]
       );
-      results.push('음료·소스 카테고리 생성');
+      results.push('✅ 음료·소스 카테고리 생성');
     }
+    results.push('카테고리 순서 완료: 치킨(1)→순살치킨(2)→콤보팩(3)→버거(4)→세트(5)→사이드(6)→음료·소스(7)');
 
-    // 7. 치킨 ↔ 사이드 카테고리 내용 스왑
-    //    (치킨에 사이드 메뉴가, 사이드에 치킨 메뉴가 들어간 상태 수정)
-    const sideCat = cats.find(c => c.name === '사이드');
-    if (sideCat) {
-      const swapped = await query<{ id: string; name: string }>(
-        `UPDATE menus
-         SET category_id = CASE
-           WHEN category_id = $1 THEN $2
-           WHEN category_id = $2 THEN $1
-           ELSE category_id
-         END
-         WHERE store_id = $3
-           AND category_id IN ($1, $2)
-         RETURNING id, name, category_id`,
-        [chickenCatId, sideCat.id, storeId]
-      );
-      results.push(`치킨 ↔ 사이드 스왑 완료: ${swapped.length}개 메뉴`);
-      results.push(swapped.map(m => m.name).join(', '));
-    }
+    // 5. 치킨 카테고리의 순살 메뉴 → 순살치킨 (이미 순살치킨에 있으면 스킵)
+    const sunsalMoved = await query<{ name: string }>(
+      `UPDATE menus SET category_id = $1
+       WHERE store_id = $2
+         AND name ILIKE '%순살%'
+         AND category_id = $3
+       RETURNING name`,
+      [sunsalId, storeId, chickenId]
+    );
+    results.push(`순살 메뉴 → 순살치킨: ${sunsalMoved.length}개`);
+    if (sunsalMoved.length > 0) results.push(sunsalMoved.map(m => m.name).join(', '));
 
-    // 8. 콤보팩/패밀리팩 → 세트 카테고리로 복구 + 활성화
-    const setCat = cats.find(c => c.name === '세트');
-    if (setCat) {
-      // 현재 콤보팩 위치 파악
-      const comboCurrent = await query<{ id: string; name: string; category_id: string | null; is_active: boolean }>(
-        `SELECT id, name, category_id, is_active FROM menus
-         WHERE store_id = $1 AND (name ILIKE '%콤보팩%' OR name ILIKE '%패밀리팩%')`,
-        [storeId]
-      );
-      results.push(`콤보팩/패밀리팩 현황: ${comboCurrent.length}개 — ${comboCurrent.map(m => `${m.name}(cat=${m.category_id},active=${m.is_active})`).join(', ')}`);
-
-      // 세트 카테고리로 이동 + 활성화
-      const comboFix = await query<{ id: string; name: string }>(
-        `UPDATE menus
-         SET category_id = $1, is_active = true
-         WHERE store_id = $2
-           AND (name ILIKE '%콤보팩%' OR name ILIKE '%패밀리팩%')
-         RETURNING id, name`,
-        [setCat.id, storeId]
-      );
-      results.push(`콤보팩/패밀리팩 → 세트 fix 완료: ${comboFix.length}개`);
-      if (comboFix.length > 0) results.push(comboFix.map(m => m.name).join(', '));
-    } else {
-      results.push('⚠️ 세트 카테고리 없음 — 콤보팩 fix 스킵');
-    }
+    // 6. 콤보팩/패밀리팩 → 콤보팩 카테고리 + 활성화 (어느 카테고리에 있든)
+    const comboMoved = await query<{ name: string }>(
+      `UPDATE menus
+       SET category_id = $1, is_active = true
+       WHERE store_id = $2
+         AND (name ILIKE '%콤보팩%' OR name ILIKE '%패밀리팩%')
+       RETURNING name`,
+      [comboPakId, storeId]
+    );
+    results.push(`콤보팩/패밀리팩 → 콤보팩 카테고리: ${comboMoved.length}개`);
+    if (comboMoved.length > 0) results.push(comboMoved.map(m => m.name).join(', '));
 
     return ok({ results });
   } catch (err) {
