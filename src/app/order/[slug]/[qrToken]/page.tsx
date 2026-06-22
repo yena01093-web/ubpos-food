@@ -1,10 +1,13 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useCart } from '@/components/useCart';
 import type { CategoryWithMenus, MenuWithOptions } from '@/types';
 
 // ── 가격 포맷 ────────────────────────────────────────────────────
 const fmt = (n: number) => n.toLocaleString('ko-KR') + '원';
+
+// ── 프로모션 배너 검색 키워드 ────────────────────────────────────
+const PROMO_SEARCHES = ['디럭스 치즈 치킨버거 세트', '오리지널 한마리'];
 
 // ── 가맹점 사업자 정보 (실제 정보로 교체하세요) ──────────────────
 const STORE_LEGAL = {
@@ -41,6 +44,13 @@ export default function OrderPage({
   const [error,        setError]        = useState('');
 
   const catRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  const promoMenus = useMemo(() => {
+    const all = categories.flatMap(c => c.menus);
+    return PROMO_SEARCHES
+      .map(s => all.find(m => m.name.includes(s)))
+      .filter((m): m is MenuWithOptions => !!m);
+  }, [categories]);
 
   // ── 나이스페이먼츠 SDK 동적 로딩 ────────────────────────────────
   useEffect(() => {
@@ -210,6 +220,14 @@ export default function OrderPage({
           )}
         </header>
 
+        {/* 프로모션 배너 */}
+        {promoMenus.length > 0 && (
+          <PromoBanner
+            menus={promoMenus}
+            onSelect={menu => !menu.is_soldout && setSelectedMenu(menu)}
+          />
+        )}
+
         {/* 카테고리 탭 */}
         <nav style={styles.catNav}>
           {categories.map(cat => (
@@ -311,6 +329,120 @@ export default function OrderPage({
         )}
       </div>
     </>
+  );
+}
+
+// ── 프로모션 배너 ─────────────────────────────────────────────────
+function PromoBanner({
+  menus,
+  onSelect,
+}: {
+  menus: MenuWithOptions[];
+  onSelect: (menu: MenuWithOptions) => void;
+}) {
+  const [idx, setIdx] = useState(0);
+  const touchStartX = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (menus.length < 2) return;
+    const t = setInterval(() => setIdx(i => (i + 1) % menus.length), 4500);
+    return () => clearInterval(t);
+  }, [menus.length]);
+
+  const go = (next: number) =>
+    setIdx(((next % menus.length) + menus.length) % menus.length);
+
+  return (
+    <div
+      style={{ overflow: 'hidden', position: 'relative', background: '#111', userSelect: 'none' }}
+      onTouchStart={e => { touchStartX.current = e.touches[0].clientX; }}
+      onTouchEnd={e => {
+        if (touchStartX.current === null) return;
+        const dx = touchStartX.current - e.changedTouches[0].clientX;
+        if (Math.abs(dx) > 40) go(idx + (dx > 0 ? 1 : -1));
+        touchStartX.current = null;
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          transform: `translateX(-${idx * 100}%)`,
+          transition: 'transform 0.45s cubic-bezier(0.25,0.46,0.45,0.94)',
+          willChange: 'transform',
+        }}
+      >
+        {menus.map(menu => (
+          <div
+            key={menu.id}
+            style={{ flexShrink: 0, width: '100%', height: 230, position: 'relative', cursor: 'pointer' }}
+            onClick={() => onSelect(menu)}
+          >
+            {menu.image_url ? (
+              <img
+                src={menu.image_url}
+                alt={menu.name}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                draggable={false}
+              />
+            ) : (
+              <div style={{ width: '100%', height: '100%', background: '#1e3a5f' }} />
+            )}
+            <div style={{
+              position: 'absolute', inset: 0,
+              background: 'linear-gradient(170deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.55) 55%, rgba(0,0,0,0.88) 100%)',
+            }} />
+            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '0 18px 32px' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#fbbf24', letterSpacing: 1.5, marginBottom: 7 }}>
+                🔥 TODAY'S SPECIAL
+              </div>
+              <div style={{ fontSize: 21, fontWeight: 800, color: '#fff', lineHeight: 1.25, marginBottom: 10 }}>
+                {menu.name}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ fontSize: 24, fontWeight: 800, color: '#fbbf24' }}>
+                  {fmt(menu.price)}
+                </div>
+                <div style={{
+                  background: '#f97316',
+                  color: '#fff',
+                  borderRadius: 50,
+                  padding: '9px 20px',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  boxShadow: '0 3px 12px rgba(249,115,22,0.55)',
+                }}>
+                  담기 →
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {menus.length > 1 && (
+        <div style={{
+          position: 'absolute', bottom: 12, left: '50%', transform: 'translateX(-50%)',
+          display: 'flex', gap: 6, alignItems: 'center',
+        }}>
+          {menus.map((_, i) => (
+            <button
+              key={i}
+              onClick={e => { e.stopPropagation(); go(i); }}
+              style={{
+                width: i === idx ? 22 : 8,
+                height: 8,
+                borderRadius: 4,
+                background: i === idx ? '#fff' : 'rgba(255,255,255,0.4)',
+                border: 'none',
+                padding: 0,
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+              }}
+            />
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
