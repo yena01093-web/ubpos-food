@@ -15,12 +15,13 @@ function checkSecret(req: NextRequest) {
 export async function GET(req: NextRequest) {
   if (!checkSecret(req)) return new Response('Unauthorized', { status: 401 });
   try {
-    const menus = await query<{ id: string; name: string; image_url: string | null }>(
-      `SELECT m.id, m.name, m.image_url
+    const menus = await query<{ id: string; name: string; image_url: string | null; category_name: string | null }>(
+      `SELECT m.id, m.name, m.image_url, c.name AS category_name
        FROM menus m
        JOIN stores s ON s.id = m.store_id
+       LEFT JOIN categories c ON c.id = m.category_id
        WHERE s.slug = 'supercrispy-jc'
-       ORDER BY m.name`
+       ORDER BY c.sort_order, m.sort_order`
     );
     return ok({ menus });
   } catch (err) {
