@@ -155,44 +155,76 @@ export async function GET() {
       results.push('⚠️ 버거 카테고리 없음');
     }
 
-    // 7. 세트 메뉴 생성 (없는 것만 삽입, 가격은 0 — 대시보드에서 수정 필요)
+    // 7. 버거 단품 가격 업데이트 + 세트 메뉴 생성
     const setCatRow = await query<{ id: string }>(
       `SELECT id FROM categories WHERE store_id=$1 AND name='세트'`, [storeId]
     );
     if (setCatRow.length > 0) {
       const setCatId = setCatRow[0].id;
-      const setMenuNames = [
-        '치킨버거 세트',
-        '치즈 치킨버거 세트',
-        '디럭스 치킨버거 세트',
-        '디럭스 치즈 치킨버거 세트',
-        '더블 치킨버거 세트',
-        '핫스파이시 치킨버거 세트',
-        '골든포테이토 치킨버거 세트',
-        '트러플머쉬룸 치킨버거 세트',
-        '화이트갈릭 치킨버거 세트',
-        '슈퍼불고기 세트',
-        '비프치즈버거 세트',
-        '슈퍼비프디럭스 세트',
-        '슈퍼핫맥 세트',
-        '통모짜치즈버거 세트',
+
+      // 단품 가격 (메뉴명 → 가격)
+      const singlePrices: Record<string, number> = {
+        '치킨버거':              2900,
+        '치즈치킨버거':          3700,
+        '골든포테이토 치킨버거': 3900,
+        '트러플머쉬룸 치킨버거': 4700,
+        '화이트갈릭 치킨버거':   3700,
+        '더블 치킨버거':         5400,
+        '디럭스 치킨버거':       5400,
+        '디럭스 치즈치킨버거':   5400,
+        '핫스파이시 치킨버거':   5400,
+        '슈퍼쉬림프 버거':       3700,
+        '슈퍼불고기':            2900,
+        '비프치즈버거':          3700,
+        '슈퍼비프디럭스':        5400,
+        '슈퍼핵':                5900,
+        '통모짜치즈버거':        5900,
+      };
+      for (const [name, price] of Object.entries(singlePrices)) {
+        await query(
+          `UPDATE menus SET price=$1 WHERE store_id=$2 AND name=$3`,
+          [price, storeId, name]
+        );
+      }
+      results.push('버거 단품 가격 업데이트 완료');
+
+      // 세트 메뉴 (이름 → 세트 가격)
+      const setMenus: [string, number][] = [
+        ['치킨버거 세트',             5900],
+        ['치즈 치킨버거 세트',        6700],
+        ['골든포테이토 치킨버거 세트', 6900],
+        ['트러플머쉬룸 치킨버거 세트', 7700],
+        ['화이트갈릭 치킨버거 세트',  6700],
+        ['더블 치킨버거 세트',        8400],
+        ['디럭스 치킨버거 세트',      8400],
+        ['디럭스 치즈 치킨버거 세트', 8400],
+        ['핫스파이시 치킨버거 세트',  8400],
+        ['슈퍼쉬림프 버거 세트',      6700],
+        ['슈퍼불고기 세트',           5900],
+        ['비프치즈버거 세트',         6700],
+        ['슈퍼비프디럭스 세트',       8400],
+        ['슈퍼핫맥 세트',             8900],
+        ['통모짜치즈버거 세트',       8900],
       ];
       let created = 0;
-      for (let i = 0; i < setMenuNames.length; i++) {
-        const name = setMenuNames[i];
+      for (let i = 0; i < setMenus.length; i++) {
+        const [name, price] = setMenus[i];
         const exists = await queryOne<{ id: string }>(
           `SELECT id FROM menus WHERE store_id=$1 AND name=$2`, [storeId, name]
         );
         if (!exists) {
           await query(
             `INSERT INTO menus (store_id, category_id, name, price, sort_order, is_active)
-             VALUES ($1, $2, $3, 0, $4, true)`,
-            [storeId, setCatId, name, i + 1]
+             VALUES ($1, $2, $3, $4, $5, true)`,
+            [storeId, setCatId, name, price, i + 1]
           );
           created++;
+        } else {
+          // 이미 있으면 가격만 업데이트
+          await query(`UPDATE menus SET price=$1 WHERE store_id=$2 AND name=$3`, [price, storeId, name]);
         }
       }
-      results.push(`세트 메뉴 생성: ${created}개 (가격=0, 대시보드에서 수정 필요)`);
+      results.push(`세트 메뉴 생성/업데이트: ${created}개 신규`);
     } else {
       results.push('⚠️ 세트 카테고리 없음');
     }
