@@ -1,6 +1,6 @@
 // GET /api/migrate — production DB migration runner
 // REMOVE THIS FILE after migrations are complete
-import { query } from '@/lib/db';
+import { query, queryOne } from '@/lib/db';
 import { ok, serverError } from '@/lib/response';
 
 export async function GET() {
@@ -153,6 +153,48 @@ export async function GET() {
       results.push(`핫스파이시 치킨버거 → 버거 카테고리 (더블치킨버거 아래): ${hotspicy.map(m => m.name).join(', ') || '해당 메뉴 없음'}`);
     } else {
       results.push('⚠️ 버거 카테고리 없음');
+    }
+
+    // 7. 세트 메뉴 생성 (없는 것만 삽입, 가격은 0 — 대시보드에서 수정 필요)
+    const setCatRow = await query<{ id: string }>(
+      `SELECT id FROM categories WHERE store_id=$1 AND name='세트'`, [storeId]
+    );
+    if (setCatRow.length > 0) {
+      const setCatId = setCatRow[0].id;
+      const setMenuNames = [
+        '치킨버거 세트',
+        '치즈 치킨버거 세트',
+        '디럭스 치킨버거 세트',
+        '디럭스 치즈 치킨버거 세트',
+        '더블 치킨버거 세트',
+        '핫스파이시 치킨버거 세트',
+        '골든포테이토 치킨버거 세트',
+        '트러플머쉬룸 치킨버거 세트',
+        '화이트갈릭 치킨버거 세트',
+        '슈퍼불고기 세트',
+        '비프치즈버거 세트',
+        '슈퍼비프디럭스 세트',
+        '슈퍼핫맥 세트',
+        '통모짜치즈버거 세트',
+      ];
+      let created = 0;
+      for (let i = 0; i < setMenuNames.length; i++) {
+        const name = setMenuNames[i];
+        const exists = await queryOne<{ id: string }>(
+          `SELECT id FROM menus WHERE store_id=$1 AND name=$2`, [storeId, name]
+        );
+        if (!exists) {
+          await query(
+            `INSERT INTO menus (store_id, category_id, name, price, sort_order, is_active)
+             VALUES ($1, $2, $3, 0, $4, true)`,
+            [storeId, setCatId, name, i + 1]
+          );
+          created++;
+        }
+      }
+      results.push(`세트 메뉴 생성: ${created}개 (가격=0, 대시보드에서 수정 필요)`);
+    } else {
+      results.push('⚠️ 세트 카테고리 없음');
     }
 
     return ok({ results });
