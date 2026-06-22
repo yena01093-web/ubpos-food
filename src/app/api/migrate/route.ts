@@ -178,7 +178,7 @@ export async function GET() {
         '슈퍼불고기':            2900,
         '비프치즈버거':          3700,
         '슈퍼비프디럭스':        5400,
-        '슈퍼핵':                5900,
+        '슈퍼핫맥':              5900,
         '통모짜치즈버거':        5900,
       };
       for (const [name, price] of Object.entries(singlePrices)) {
