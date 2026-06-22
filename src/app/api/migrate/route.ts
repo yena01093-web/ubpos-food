@@ -119,6 +119,42 @@ export async function GET() {
     results.push(`콤보팩/패밀리팩 → 콤보팩: ${comboMoved.length}개`);
     if (comboMoved.length > 0) results.push(comboMoved.map(m => m.name).join(', '));
 
+    // 6. 핫스파이시 치킨버거 → 버거 카테고리, 더블치킨버거 바로 아래
+    const burgerId = cats.find(c => c.name === '버거')?.id
+      ?? (await query<{ id: string }>(`SELECT id FROM categories WHERE store_id=$1 AND name='버거'`, [storeId]))[0]?.id;
+
+    if (burgerId) {
+      // 버거 카테고리 현재 메뉴 순서 조회
+      const burgerMenus = await query<{ id: string; name: string; sort_order: number }>(
+        `SELECT id, name, sort_order FROM menus
+         WHERE store_id=$1 AND category_id=$2
+         ORDER BY sort_order`,
+        [storeId, burgerId]
+      );
+
+      const doubleIdx = burgerMenus.findIndex(m => m.name.includes('더블') && m.name.includes('치킨버거'));
+      const insertAfterOrder = doubleIdx >= 0 ? burgerMenus[doubleIdx].sort_order : 0;
+
+      // 더블치킨버거 뒤 항목들 sort_order + 1
+      if (doubleIdx >= 0) {
+        for (const m of burgerMenus.slice(doubleIdx + 1)) {
+          await query(`UPDATE menus SET sort_order=$1 WHERE id=$2`, [m.sort_order + 1, m.id]);
+        }
+      }
+
+      // 핫스파이시 치킨버거 이동 + sort_order 설정
+      const hotspicy = await query<{ name: string }>(
+        `UPDATE menus SET category_id=$1, sort_order=$2
+         WHERE store_id=$3 AND name ILIKE '%핫스파이시%치킨버거%'
+           AND name NOT ILIKE '%세트%'
+         RETURNING name`,
+        [burgerId, insertAfterOrder + 1, storeId]
+      );
+      results.push(`핫스파이시 치킨버거 → 버거 카테고리 (더블치킨버거 아래): ${hotspicy.map(m => m.name).join(', ') || '해당 메뉴 없음'}`);
+    } else {
+      results.push('⚠️ 버거 카테고리 없음');
+    }
+
     return ok({ results });
   } catch (err) {
     return serverError(err);
