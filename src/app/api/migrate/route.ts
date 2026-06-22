@@ -76,6 +76,7 @@ export async function GET() {
       `UPDATE menus SET category_id = $1
        WHERE store_id = $2
          AND category_id != $1
+         AND name NOT ILIKE '%핫스파이%'
          AND (${sideCond})
        RETURNING name`,
       [sideId, storeId, ...sidePatterns]
@@ -225,6 +226,18 @@ export async function GET() {
         }
       }
       results.push(`세트 메뉴 생성/업데이트: ${created}개 신규`);
+
+      // 핫스파이시 아이템이 '%파이%' 패턴에 걸려 사이드로 이동된 경우 복구
+      const hotFix = await query<{ name: string }>(
+        `UPDATE menus SET category_id = $1
+         WHERE store_id = $2
+           AND name ILIKE '%핫스파이시%'
+           AND name ILIKE '%세트%'
+           AND category_id != $1
+         RETURNING name`,
+        [setCatId, storeId]
+      );
+      if (hotFix.length > 0) results.push(`핫스파이시 세트 복구 → 세트: ${hotFix.map(m => m.name).join(', ')}`);
     } else {
       results.push('⚠️ 세트 카테고리 없음');
     }
