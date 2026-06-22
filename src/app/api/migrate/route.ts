@@ -71,37 +71,24 @@ export async function GET() {
       results.push('음료·소스 카테고리 생성');
     }
 
-    // 7. 사이드에서 치킨 메뉴 이동 (이름에 치킨 포함 & 버거 미포함)
+    // 7. 치킨 ↔ 사이드 카테고리 내용 스왑
+    //    (치킨에 사이드 메뉴가, 사이드에 치킨 메뉴가 들어간 상태 수정)
     const sideCat = cats.find(c => c.name === '사이드');
     if (sideCat) {
-      const moved = await query<{ id: string; name: string }>(
-        `UPDATE menus SET category_id = $1
-         WHERE store_id = $2
-           AND category_id = $3
-           AND name ILIKE '%치킨%'
-           AND name NOT ILIKE '%버거%'
-         RETURNING id, name`,
-        [chickenCatId, storeId, sideCat.id]
+      const swapped = await query<{ id: string; name: string }>(
+        `UPDATE menus
+         SET category_id = CASE
+           WHEN category_id = $1 THEN $2
+           WHEN category_id = $2 THEN $1
+           ELSE category_id
+         END
+         WHERE store_id = $3
+           AND category_id IN ($1, $2)
+         RETURNING id, name, category_id`,
+        [chickenCatId, sideCat.id, storeId]
       );
-      if (moved.length > 0) {
-        results.push(`사이드 → 치킨 이동: ${moved.map(m => m.name).join(', ')}`);
-      } else {
-        results.push('사이드에서 이동할 치킨 메뉴 없음 (이미 이동됐거나 해당 없음)');
-      }
-    }
-
-    // 8. category_id가 null인 치킨 관련 메뉴도 치킨으로
-    const nullMoved = await query<{ id: string; name: string }>(
-      `UPDATE menus SET category_id = $1
-       WHERE store_id = $2
-         AND category_id IS NULL
-         AND name ILIKE '%치킨%'
-         AND name NOT ILIKE '%버거%'
-       RETURNING id, name`,
-      [chickenCatId, storeId]
-    );
-    if (nullMoved.length > 0) {
-      results.push(`미분류 → 치킨 이동: ${nullMoved.map(m => m.name).join(', ')}`);
+      results.push(`치킨 ↔ 사이드 스왑 완료: ${swapped.length}개 메뉴`);
+      results.push(swapped.map(m => m.name).join(', '));
     }
 
     return ok({ results });
