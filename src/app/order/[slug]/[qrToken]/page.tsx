@@ -385,7 +385,7 @@ function PromoBanner({
                 draggable={false}
               />
             ) : (
-              <div style={{ width: '100%', height: '100%', background: '#1e3a5f' }} />
+              <div style={{ width: '100%', height: '100%', background: '#E8560A' }} />
             )}
             <div style={{
               position: 'absolute', inset: 0,
@@ -775,14 +775,14 @@ function ErrorScreen({ message }: { message: string }) {
 // ── 스타일 ────────────────────────────────────────────────────────
 const styles: Record<string, React.CSSProperties> = {
   root:           { minHeight: '100dvh', background: '#f9fafb', fontFamily: "'Pretendard', 'Apple SD Gothic Neo', sans-serif" },
-  header:         { background: '#1e3a5f', color: '#fff', padding: '14px 16px 0' },
+  header:         { background: '#E8560A', color: '#fff', padding: '14px 16px 0' },
   headerInner:    { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   storeName:      { fontSize: 18, fontWeight: 700 },
-  tableBadge:     { background: '#2563eb', borderRadius: 20, padding: '4px 12px', fontSize: 13 },
-  notice:         { background: '#1a335a', fontSize: 12, padding: '8px 0 12px', color: '#93c5fd' },
+  tableBadge:     { background: '#E8560A', borderRadius: 20, padding: '4px 12px', fontSize: 13 },
+  notice:         { background: '#c44508', fontSize: 12, padding: '8px 0 12px', color: '#ffe4c4' },
   catNav:         { display: 'flex', gap: 0, overflowX: 'auto', background: '#fff', borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 0, zIndex: 10 },
   catTab:         { flexShrink: 0, padding: '12px 20px', fontSize: 14, fontWeight: 500, background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', borderBottom: '3px solid transparent' },
-  catTabActive:   { color: '#2563eb', borderBottom: '3px solid #2563eb', fontWeight: 700 },
+  catTabActive:   { color: '#E8560A', borderBottom: '3px solid #E8560A', fontWeight: 700 },
   main:           { padding: '0 0 16px' },
   catSection:     { padding: '20px 16px 0' },
   catBanner:      { margin: '-20px -16px 12px', height: 160, overflow: 'hidden' },
@@ -797,8 +797,8 @@ const styles: Record<string, React.CSSProperties> = {
   menuInfo:       { padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 4, flex: 1 },
   menuName:       { fontSize: 15, fontWeight: 600, color: '#111827' },
   menuDesc:       { fontSize: 12, color: '#9ca3af', lineHeight: 1.4 },
-  menuPrice:      { fontSize: 15, fontWeight: 700, color: '#2563eb', marginTop: 'auto' },
-  cartFloat:      { position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', background: '#1e3a5f', color: '#fff', border: 'none', borderRadius: 50, padding: '16px 32px', fontSize: 16, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 24px rgba(0,0,0,0.2)', zIndex: 50, whiteSpace: 'nowrap' },
+  menuPrice:      { fontSize: 15, fontWeight: 700, color: '#E8560A', marginTop: 'auto' },
+  cartFloat:      { position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', background: '#E8560A', color: '#fff', border: 'none', borderRadius: 50, padding: '16px 32px', fontSize: 16, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 24px rgba(0,0,0,0.2)', zIndex: 50, whiteSpace: 'nowrap' },
   overlay:        { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'flex-end' },
   modal:          { background: '#fff', borderRadius: '20px 20px 0 0', width: '100%', maxHeight: '90vh', display: 'flex', flexDirection: 'column' },
   modalHeader:    { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 20px 0' },
@@ -809,16 +809,16 @@ const styles: Record<string, React.CSSProperties> = {
   optGroup:       { marginBottom: 20 },
   optGroupHeader: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 },
   optGroupName:   { fontSize: 15, fontWeight: 600 },
-  optBadge:       { fontSize: 11, background: '#eff6ff', color: '#2563eb', borderRadius: 6, padding: '2px 8px' },
+  optBadge:       { fontSize: 11, background: '#fff3e0', color: '#E8560A', borderRadius: 6, padding: '2px 8px' },
   optItem:        { display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', padding: '12px 14px', marginBottom: 6, border: '1.5px solid #e5e7eb', borderRadius: 10, background: '#fff', cursor: 'pointer', fontSize: 14 },
-  optItemSelected:{ border: '1.5px solid #2563eb', background: '#eff6ff' },
-  optPrice:       { color: '#2563eb', fontWeight: 600 },
+  optItemSelected:{ border: '1.5px solid #E8560A', background: '#fff3e0' },
+  optPrice:       { color: '#E8560A', fontWeight: 600 },
   qtyRow:         { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, margin: '16px 0' },
   qtyBtn:         { width: 40, height: 40, borderRadius: '50%', border: '1.5px solid #d1d5db', background: '#fff', fontSize: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' },
   qtyBtnSm:       { width: 28, height: 28, borderRadius: '50%', border: '1.5px solid #d1d5db', background: '#fff', fontSize: 16, cursor: 'pointer' },
   qtyNum:         { fontSize: 20, fontWeight: 700, minWidth: 32, textAlign: 'center' },
   qtyNumSm:       { fontSize: 15, fontWeight: 600, minWidth: 24, textAlign: 'center' },
-  addBtn:         { width: '100%', padding: '16px', background: '#1e3a5f', color: '#fff', border: 'none', borderRadius: 12, fontSize: 16, fontWeight: 700, cursor: 'pointer', marginBottom: 8 },
+  addBtn:         { width: '100%', padding: '16px', background: '#E8560A', color: '#fff', border: 'none', borderRadius: 12, fontSize: 16, fontWeight: 700, cursor: 'pointer', marginBottom: 8 },
   addBtnDisabled: { background: '#9ca3af', cursor: 'not-allowed' },
   backBtn:        { width: '100%', padding: '14px', background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' },
   cartItem:       { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #f3f4f6' },
@@ -826,10 +826,10 @@ const styles: Record<string, React.CSSProperties> = {
   cartItemName:   { fontSize: 15, fontWeight: 600 },
   cartItemOpts:   { fontSize: 12, color: '#9ca3af' },
   cartItemRight:  { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 },
-  cartItemPrice:  { fontSize: 14, fontWeight: 700, color: '#2563eb' },
+  cartItemPrice:  { fontSize: 14, fontWeight: 700, color: '#E8560A' },
   noteInput:      { width: '100%', marginTop: 16, padding: 12, border: '1px solid #e5e7eb', borderRadius: 10, fontSize: 14, resize: 'none', boxSizing: 'border-box' },
   totalRow:       { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  totalPrice:     { fontSize: 20, fontWeight: 700, color: '#1e3a5f' },
+  totalPrice:     { fontSize: 20, fontWeight: 700, color: '#E8560A' },
   confirmItem:    { display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f3f4f6', fontSize: 14 },
   noteDisplay:    { marginTop: 12, padding: 10, background: '#f9fafb', borderRadius: 8, fontSize: 13, color: '#6b7280' },
   errorMsg:       { color: '#ef4444', fontSize: 13, margin: '8px 0', textAlign: 'center' },
