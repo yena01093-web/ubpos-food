@@ -2,6 +2,51 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useSocket } from '@/components/useSocket';
 
+// ── 주방 영수증 자동 출력 ─────────────────────────────────────────
+function printKitchenTicket(order: Order) {
+  const now = new Date();
+  const timeStr = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+  const fmtP = (n: number) => n.toLocaleString('ko-KR') + '원';
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+@page{size:80mm auto;margin:3mm 2mm}
+body{font-family:'Courier New',monospace;font-size:15px;width:76mm;line-height:1.5}
+.center{text-align:center}
+.bold{font-weight:bold}
+.big{font-size:22px;font-weight:bold}
+.huge{font-size:32px;font-weight:bold;text-align:center;margin:6px 0}
+.dash{border-top:1px dashed #000;margin:6px 0}
+.row{display:flex;justify-content:space-between;margin:2px 0}
+.note{margin-top:6px;padding:4px;border:1px dashed #000;font-size:13px}
+</style></head><body>
+<div class="center bold" style="font-size:16px">슈퍼크리스피 제천점</div>
+<div class="center" style="font-size:12px">주방영수증</div>
+<div class="dash"></div>
+<div class="huge">${order.order_number}</div>
+<div class="row"><span>${order.table_number ? '🪑 ' + order.table_number : '포장'}</span><span>${timeStr}</span></div>
+<div class="dash"></div>
+${order.items.map(i=>`<div class="row"><span>${i.menu_name}</span><span>× ${i.quantity}</span></div>`).join('')}
+<div class="dash"></div>
+<div class="row bold"><span>합계</span><span>${fmtP(order.total_price)}</span></div>
+${order.request_note ? `<div class="note">📝 ${order.request_note}</div>` : ''}
+<div style="margin-top:16px"></div>
+</body></html>`;
+
+  const iframe = document.createElement('iframe');
+  iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px';
+  document.body.appendChild(iframe);
+  iframe.contentDocument!.open();
+  iframe.contentDocument!.write(html);
+  iframe.contentDocument!.close();
+  iframe.contentWindow!.onafterprint = () => document.body.removeChild(iframe);
+  setTimeout(() => {
+    iframe.contentWindow!.focus();
+    iframe.contentWindow!.print();
+  }, 300);
+}
+
 const fmt = (n: number) => n.toLocaleString('ko-KR') + '원';
 
 interface OrderItem { menu_name: string; quantity: number; item_total: number; }
@@ -61,6 +106,8 @@ export default function OrdersPanel({ storeId, token }: { storeId: string; token
       setSummary(s => ({ ...s, total_orders: s.total_orders + 1, pending_count: s.pending_count + 1 }));
       // 알림음
       try { new Audio('/sounds/order.mp3').play(); } catch {}
+      // 주방 자동 출력
+      printKitchenTicket(newOrder);
     });
 
     const off2 = on<{ orderId: string; status: string }>('order:status_changed', ({ orderId, status }) => {
@@ -202,6 +249,7 @@ function OrderDetailModal({ order, onClose, onAction }: {
       <div style={s.modal} onClick={e => e.stopPropagation()}>
         <div style={s.modalHeader}>
           <span style={s.modalTitle}>{order.order_number}</span>
+          <button style={s.printBtn} onClick={() => printKitchenTicket(order)}>🖨 재인쇄</button>
           <button style={s.closeBtn} onClick={onClose}>✕</button>
         </div>
         <div style={s.modalBody}>
@@ -263,7 +311,8 @@ const s: Record<string, React.CSSProperties> = {
   note:         { fontSize: 12, color: '#94a3b8', background: '#f8fafc', borderRadius: 6, padding: '4px 8px' },
   overlay:      { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' },
   modal:        { background: '#fff', borderRadius: 16, width: '90%', maxWidth: 440, maxHeight: '80vh', display: 'flex', flexDirection: 'column' },
-  modalHeader:  { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 20px 0' },
+  modalHeader:  { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '20px 20px 0' },
+  printBtn:     { background: '#f3f4f6', border: 'none', borderRadius: 8, padding: '6px 12px', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: '#374151', marginLeft: 'auto' },
   modalTitle:   { fontSize: 18, fontWeight: 700 },
   closeBtn:     { background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#94a3b8' },
   modalBody:    { padding: '16px 20px', overflowY: 'auto', flex: 1 },
