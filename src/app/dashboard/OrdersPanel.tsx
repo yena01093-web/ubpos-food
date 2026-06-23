@@ -4,7 +4,7 @@ import { useSocket } from '@/components/useSocket';
 
 // Web Serial API 타입 선언 (lib.dom.d.ts에 미포함 버전 대응)
 type SerialPort = {
-  open(options: { baudRate: number }): Promise<void>;
+  open(options: { baudRate: number; dataBits?: number; stopBits?: number; parity?: string }): Promise<void>;
   writable: WritableStream<Uint8Array>;
   addEventListener(type: 'disconnect', handler: () => void): void;
 };
