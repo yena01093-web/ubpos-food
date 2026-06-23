@@ -17,7 +17,6 @@ export async function POST(req: NextRequest) {
 
     const parts: Buffer[] = [
       b(0x1B, 0x40),              // ESC @ 초기화
-      b(0x1C, 0x26),              // FS & 한글 모드
       b(0x1B, 0x61, 0x01),        // 가운데 정렬
       b(0x1B, 0x45, 0x01),        // 볼드 ON
       ko('슈퍼크리스피 제천점'), LF,

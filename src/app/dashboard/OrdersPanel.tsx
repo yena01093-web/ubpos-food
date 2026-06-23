@@ -102,7 +102,7 @@ export default function OrdersPanel({ storeId, token }: { storeId: string; token
   const openPort = useCallback(async (port: SerialPort) => {
     try {
       if (portOpen.current) return;
-      await port.open({ baudRate: 38400 });
+      await port.open({ baudRate: 9600 });
       portRef.current = port;
       portOpen.current = true;
       setPrinterStatus('connected');
