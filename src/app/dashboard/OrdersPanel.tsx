@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useSocket } from '@/components/useSocket';
 
 // ── 주방 영수증 자동 출력 ─────────────────────────────────────────
@@ -74,19 +74,37 @@ export default function OrdersPanel({ storeId, token }: { storeId: string; token
   const [selected, setSelected] = useState<Order | null>(null);
 
   const { joinStore, on } = useSocket(token);
+  const knownIds = useRef<Set<string>>(new Set());
+  const isFirstLoad = useRef(true);
 
-  // ── 초기 로드 ──────────────────────────────────────────────────
+  // ── 로드 + 새 주문 감지 → 자동 출력 ──────────────────────────
   const load = useCallback(async () => {
     const res  = await fetch(`/api/dashboard/orders?storeId=${storeId}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     const data = await res.json();
     if (data.ok) {
-      setOrders(data.data.orders);
+      const fetched: Order[] = data.data.orders;
+
+      if (isFirstLoad.current) {
+        // 첫 로드: 기존 주문 ID 저장만 (출력 안 함)
+        fetched.forEach(o => knownIds.current.add(o.id));
+        isFirstLoad.current = false;
+      } else {
+        // 이후 폴링: 새 주문 감지 → 출력
+        const newOrders = fetched.filter(o => !knownIds.current.has(o.id));
+        newOrders.forEach(o => {
+          knownIds.current.add(o.id);
+          printKitchenTicket(o);
+          try { new Audio('/sounds/order.mp3').play(); } catch {}
+        });
+      }
+
+      setOrders(fetched);
       setSummary({
-        total_orders:   Number(data.data.summary.total_orders),
-        total_revenue:  Number(data.data.summary.total_revenue),
-        pending_count:  Number(data.data.summary.pending_count),
+        total_orders:  Number(data.data.summary.total_orders),
+        total_revenue: Number(data.data.summary.total_revenue),
+        pending_count: Number(data.data.summary.pending_count),
       });
     }
     setLoading(false);
@@ -96,14 +114,15 @@ export default function OrdersPanel({ storeId, token }: { storeId: string; token
     load();
     joinStore(storeId);
 
-    // 실시간 이벤트
+    // WebSocket 이벤트 (연결된 경우 보조 수단으로 활용)
     const off1 = on<Order>('order:new', (newOrder) => {
-      setOrders(prev => [newOrder, ...prev]);
-      setSummary(s => ({ ...s, total_orders: s.total_orders + 1, pending_count: s.pending_count + 1 }));
-      // 알림음
-      try { new Audio('/sounds/order.mp3').play(); } catch {}
-      // 주방 자동 출력
-      printKitchenTicket(newOrder);
+      if (!knownIds.current.has(newOrder.id)) {
+        knownIds.current.add(newOrder.id);
+        setOrders(prev => [newOrder, ...prev]);
+        setSummary(s => ({ ...s, total_orders: s.total_orders + 1, pending_count: s.pending_count + 1 }));
+        printKitchenTicket(newOrder);
+        try { new Audio('/sounds/order.mp3').play(); } catch {}
+      }
     });
 
     const off2 = on<{ orderId: string; status: string }>('order:status_changed', ({ orderId, status }) => {
@@ -114,9 +133,9 @@ export default function OrdersPanel({ storeId, token }: { storeId: string; token
     return () => { off1(); off2(); };
   }, [storeId, load, joinStore, on]);
 
-  // ── 자동 새로고침 (15초) ───────────────────────────────────────
+  // ── 폴링 5초 (새 주문 빠르게 감지) ───────────────────────────
   useEffect(() => {
-    const interval = setInterval(() => { load(); }, 15000);
+    const interval = setInterval(() => { load(); }, 5000);
     return () => clearInterval(interval);
   }, [load]);
 
