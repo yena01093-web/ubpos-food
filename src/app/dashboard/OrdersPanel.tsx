@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useSocket } from '@/components/useSocket';
 
 // ── 주방 영수증 자동 출력 ─────────────────────────────────────────
+// Chrome --kiosk-printing 플래그 적용 시 대화창 없이 바로 인쇄됨
 function printKitchenTicket(order: Order) {
   const now = new Date();
   const timeStr = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
@@ -15,7 +16,6 @@ function printKitchenTicket(order: Order) {
 body{font-family:'Courier New',monospace;font-size:15px;width:76mm;line-height:1.5}
 .center{text-align:center}
 .bold{font-weight:bold}
-.big{font-size:22px;font-weight:bold}
 .huge{font-size:32px;font-weight:bold;text-align:center;margin:6px 0}
 .dash{border-top:1px dashed #000;margin:6px 0}
 .row{display:flex;justify-content:space-between;margin:2px 0}
@@ -25,26 +25,22 @@ body{font-family:'Courier New',monospace;font-size:15px;width:76mm;line-height:1
 <div class="center" style="font-size:12px">주방영수증</div>
 <div class="dash"></div>
 <div class="huge">${order.order_number}</div>
-<div class="row"><span>${order.table_number ? '🪑 ' + order.table_number : '포장'}</span><span>${timeStr}</span></div>
+<div class="row"><span>${order.table_number ? '🪑 ' + order.table_number : '📦 포장'}</span><span>${timeStr}</span></div>
 <div class="dash"></div>
-${order.items.map(i=>`<div class="row"><span>${i.menu_name}</span><span>× ${i.quantity}</span></div>`).join('')}
+${order.items.map(i => `<div class="row"><span>${i.menu_name}</span><span>× ${i.quantity}</span></div>`).join('')}
 <div class="dash"></div>
 <div class="row bold"><span>합계</span><span>${fmtP(order.total_price)}</span></div>
 ${order.request_note ? `<div class="note">📝 ${order.request_note}</div>` : ''}
-<div style="margin-top:16px"></div>
+<div style="margin-top:20px"></div>
+<script>window.onload=function(){window.print();window.onafterprint=function(){window.close();};};<\/script>
 </body></html>`;
 
-  const iframe = document.createElement('iframe');
-  iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px';
-  document.body.appendChild(iframe);
-  iframe.contentDocument!.open();
-  iframe.contentDocument!.write(html);
-  iframe.contentDocument!.close();
-  iframe.contentWindow!.onafterprint = () => document.body.removeChild(iframe);
-  setTimeout(() => {
-    iframe.contentWindow!.focus();
-    iframe.contentWindow!.print();
-  }, 300);
+  // --kiosk-printing 적용 시 대화창 없이 바로 인쇄 후 창 자동 닫힘
+  const win = window.open('', '_blank', 'width=1,height=1,left=-100,top=-100');
+  if (!win) return; // 팝업 차단된 경우
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
 }
 
 const fmt = (n: number) => n.toLocaleString('ko-KR') + '원';
