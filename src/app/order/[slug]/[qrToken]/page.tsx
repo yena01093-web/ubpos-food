@@ -31,6 +31,7 @@ export default function OrderPage({
   const [store,      setStore]      = useState<{ id: string; name: string; notice: string | null; is_open: boolean } | null>(null);
   const [table,      setTable]      = useState<{ id: string; table_number: string } | null>(null);
   const [categories, setCategories] = useState<CategoryWithMenus[]>([]);
+  const [banners,    setBanners]    = useState<{ id: string; image_url: string; sort_order: number }[]>([]);
   const [loading,    setLoading]    = useState(true);
   const [activecat,  setActivecat]  = useState('');
 
@@ -73,6 +74,7 @@ export default function OrderPage({
 
         setStore(menuData.data.store);
         setCategories(menuData.data.categories);
+        setBanners(menuData.data.banners ?? []);
         setActivecat(menuData.data.categories[0]?.id ?? '');
 
         if (!isTakeout) {
@@ -221,9 +223,10 @@ export default function OrderPage({
         </header>
 
         {/* 프로모션 배너 */}
-        {promoMenus.length > 0 && (
+        {(banners.length > 0 || promoMenus.length > 0) && (
           <PromoBanner
             menus={promoMenus}
+            banners={banners}
             onSelect={menu => !menu.is_soldout && setSelectedMenu(menu)}
           />
         )}
@@ -373,22 +376,27 @@ function BrandHero({ categories }: { categories: CategoryWithMenus[] }) {
 // ── 프로모션 배너 ─────────────────────────────────────────────────
 function PromoBanner({
   menus,
+  banners = [],
   onSelect,
 }: {
   menus: MenuWithOptions[];
+  banners?: { id: string; image_url: string; sort_order: number }[];
   onSelect: (menu: MenuWithOptions) => void;
 }) {
+  const useCustom = banners.length > 0;
+  const count     = useCustom ? banners.length : menus.length;
+
   const [idx, setIdx] = useState(0);
   const touchStartX = useRef<number | null>(null);
 
   useEffect(() => {
-    if (menus.length < 2) return;
-    const t = setInterval(() => setIdx(i => (i + 1) % menus.length), 4500);
+    if (count < 2) return;
+    const t = setInterval(() => setIdx(i => (i + 1) % count), 4500);
     return () => clearInterval(t);
-  }, [menus.length]);
+  }, [count]);
 
   const go = (next: number) =>
-    setIdx(((next % menus.length) + menus.length) % menus.length);
+    setIdx(((next % count) + count) % count);
 
   return (
     <div
@@ -409,73 +417,44 @@ function PromoBanner({
           willChange: 'transform',
         }}
       >
-        {menus.map(menu => (
-          <div
-            key={menu.id}
-            style={{ flexShrink: 0, width: '100%', height: 230, position: 'relative', cursor: 'pointer' }}
-            onClick={() => onSelect(menu)}
-          >
-            {menu.image_url ? (
-              <img
-                src={menu.image_url}
-                alt={menu.name}
-                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                draggable={false}
-              />
-            ) : (
-              <div style={{ width: '100%', height: '100%', background: '#E8560A' }} />
-            )}
-            <div style={{
-              position: 'absolute', inset: 0,
-              background: 'linear-gradient(170deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.55) 55%, rgba(0,0,0,0.88) 100%)',
-            }} />
-            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '0 18px 32px' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#fbbf24', letterSpacing: 1.5, marginBottom: 7 }}>
-                🔥 TODAY'S SPECIAL
+        {useCustom
+          ? banners.map(b => (
+              <div key={b.id} style={{ flexShrink: 0, width: '100%', height: 230, position: 'relative' }}>
+                <img src={b.image_url} alt="배너" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} draggable={false} />
               </div>
-              <div style={{ fontSize: 21, fontWeight: 800, color: '#fff', lineHeight: 1.25, marginBottom: 10 }}>
-                {menu.name}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ fontSize: 24, fontWeight: 800, color: '#fbbf24' }}>
-                  {fmt(menu.price)}
-                </div>
-                <div style={{
-                  background: '#f97316',
-                  color: '#fff',
-                  borderRadius: 50,
-                  padding: '9px 20px',
-                  fontSize: 13,
-                  fontWeight: 700,
-                  boxShadow: '0 3px 12px rgba(249,115,22,0.55)',
-                }}>
-                  담기 →
+            ))
+          : menus.map(menu => (
+              <div
+                key={menu.id}
+                style={{ flexShrink: 0, width: '100%', height: 230, position: 'relative', cursor: 'pointer' }}
+                onClick={() => onSelect(menu)}
+              >
+                {menu.image_url ? (
+                  <img src={menu.image_url} alt={menu.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} draggable={false} />
+                ) : (
+                  <div style={{ width: '100%', height: '100%', background: '#E8560A' }} />
+                )}
+                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(170deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.55) 55%, rgba(0,0,0,0.88) 100%)' }} />
+                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '0 18px 32px' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#fbbf24', letterSpacing: 1.5, marginBottom: 7 }}>🔥 TODAY'S SPECIAL</div>
+                  <div style={{ fontSize: 21, fontWeight: 800, color: '#fff', lineHeight: 1.25, marginBottom: 10 }}>{menu.name}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ fontSize: 24, fontWeight: 800, color: '#fbbf24' }}>{fmt(menu.price)}</div>
+                    <div style={{ background: '#f97316', color: '#fff', borderRadius: 50, padding: '9px 20px', fontSize: 13, fontWeight: 700, boxShadow: '0 3px 12px rgba(249,115,22,0.55)' }}>담기 →</div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
-        ))}
+            ))
+        }
       </div>
 
-      {menus.length > 1 && (
-        <div style={{
-          position: 'absolute', bottom: 12, left: '50%', transform: 'translateX(-50%)',
-          display: 'flex', gap: 6, alignItems: 'center',
-        }}>
-          {menus.map((_, i) => (
+      {count > 1 && (
+        <div style={{ position: 'absolute', bottom: 12, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 6, alignItems: 'center' }}>
+          {Array.from({ length: count }).map((_, i) => (
             <button
               key={i}
               onClick={e => { e.stopPropagation(); go(i); }}
-              style={{
-                width: i === idx ? 22 : 8,
-                height: 8,
-                borderRadius: 4,
-                background: i === idx ? '#fff' : 'rgba(255,255,255,0.4)',
-                border: 'none',
-                padding: 0,
-                cursor: 'pointer',
-                transition: 'all 0.3s ease',
-              }}
+              style={{ width: i === idx ? 22 : 8, height: 8, borderRadius: 4, background: i === idx ? '#fff' : 'rgba(255,255,255,0.4)', border: 'none', padding: 0, cursor: 'pointer', transition: 'all 0.3s ease' }}
             />
           ))}
         </div>

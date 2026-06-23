@@ -242,6 +242,18 @@ export async function GET() {
       results.push('⚠️ 세트 카테고리 없음');
     }
 
+    // 8. banners 테이블 생성
+    await query(`
+      CREATE TABLE IF NOT EXISTS banners (
+        id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        store_id   UUID REFERENCES stores(id) ON DELETE CASCADE,
+        image_url  TEXT NOT NULL,
+        sort_order INT  DEFAULT 0,
+        is_active  BOOLEAN DEFAULT true
+      )
+    `);
+    results.push('banners 테이블: OK');
+
     return ok({ results });
   } catch (err) {
     return serverError(err);

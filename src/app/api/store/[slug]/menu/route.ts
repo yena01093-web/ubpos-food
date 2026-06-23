@@ -20,7 +20,13 @@ export async function GET(
     );
     if (!store) return notFound('가맹점을 찾을 수 없습니다');
 
-    // 2. 카테고리 조회
+    // 2. 배너 조회
+    const banners = await query<{ id: string; image_url: string; sort_order: number }>(
+      `SELECT id, image_url, sort_order FROM banners WHERE store_id = $1 AND is_active = true ORDER BY sort_order`,
+      [store.id]
+    );
+
+    // 3. 카테고리 조회
     const categories = await query<{ id: string; name: string; sort_order: number; image_url: string | null }>(
       `SELECT id, name, sort_order, image_url
        FROM categories
@@ -29,7 +35,7 @@ export async function GET(
       [store.id]
     );
 
-    // 3. 메뉴 + 옵션 조회 (한 번의 쿼리로)
+    // 4. 메뉴 + 옵션 조회 (한 번의 쿼리로)
     const menus = await query<{
       menu_id: string; menu_name: string; description: string | null;
       price: number; image_url: string | null; is_soldout: boolean;
@@ -66,7 +72,7 @@ export async function GET(
       [store.id]
     );
 
-    // 4. 메뉴 데이터 조립 (flat rows → nested)
+    // 5. 메뉴 데이터 조립 (flat rows → nested)
     const menuMap = new Map<string, {
       id: string; name: string; description: string | null;
       price: number; image_url: string | null; is_soldout: boolean;
@@ -106,7 +112,7 @@ export async function GET(
       }
     }
 
-    // 5. 카테고리에 메뉴 연결
+    // 6. 카테고리에 메뉴 연결
     const result = categories.map(cat => ({
       ...cat,
       menus: [...menuMap.values()]
@@ -118,7 +124,7 @@ export async function GET(
         .sort((a, b) => a.sort_order - b.sort_order),
     }));
 
-    return ok({ store, categories: result });
+    return ok({ store, categories: result, banners });
   } catch (err) {
     return serverError(err);
   }
