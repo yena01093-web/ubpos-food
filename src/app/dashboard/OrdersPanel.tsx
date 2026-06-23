@@ -91,6 +91,7 @@ export default function OrdersPanel({ storeId, token }: { storeId: string; token
   const [loading,       setLoading]       = useState(true);
   const [selected,      setSelected]      = useState<Order | null>(null);
   const [printerStatus, setPrinterStatus] = useState<'disconnected' | 'connected' | 'error'>('disconnected');
+  const [printerError,  setPrinterError]  = useState('');
 
   const { joinStore, on } = useSocket(token);
   const knownIds   = useRef<Set<string>>(new Set());
@@ -101,19 +102,22 @@ export default function OrdersPanel({ storeId, token }: { storeId: string; token
   // ── Serial 포트 열기 ──────────────────────────────────────────
   const openPort = useCallback(async (port: SerialPort) => {
     try {
-      if (portOpen.current) return;
-      await port.open({ baudRate: 9600 });
-      portRef.current = port;
+      portOpen.current = false; // 재시도 허용
+      await port.open({ baudRate: 9600, dataBits: 8, stopBits: 1, parity: 'none' });
+      portRef.current  = port;
       portOpen.current = true;
       setPrinterStatus('connected');
+      setPrinterError('');
 
       port.addEventListener('disconnect', () => {
         portOpen.current = false;
-        portRef.current = null;
+        portRef.current  = null;
         setPrinterStatus('disconnected');
       });
-    } catch {
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
       setPrinterStatus('error');
+      setPrinterError(msg);
     }
   }, []);
 
@@ -137,8 +141,12 @@ export default function OrdersPanel({ storeId, token }: { storeId: string; token
         serial: { requestPort(o?: object): Promise<SerialPort> }
       }).serial.requestPort();
       await openPort(port);
-    } catch {
-      // 사용자가 취소한 경우 무시
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (!msg.includes('cancelled') && !msg.includes('No port selected')) {
+        setPrinterStatus('error');
+        setPrinterError(msg);
+      }
     }
   }, [openPort]);
 
@@ -245,11 +253,15 @@ export default function OrdersPanel({ storeId, token }: { storeId: string; token
     <div style={s.root}>
       {/* 프린터 연결 바 */}
       <div style={s.printerBar}>
-        <span style={{ fontSize: 12, color: '#64748b' }}>
-          {printerStatus === 'connected'
-            ? 'COM12 · 9600baud · 직접 인쇄 활성'
-            : '프린터 미연결 — 연결 시 팝업 없이 바로 출력'}
-        </span>
+        <div>
+          <span style={{ fontSize: 12, color: '#64748b' }}>
+            {printerStatus === 'connected'
+              ? '🟢 9600baud · 직접 인쇄 활성'
+              : printerStatus === 'error'
+              ? `🔴 오류: ${printerError || '알 수 없는 오류'}`
+              : '⚪ 프린터 미연결'}
+          </span>
+        </div>
         <button
           style={{ ...s.printerBtn, background: printerBtnColor }}
           onClick={connectPrinter}
