@@ -9,41 +9,17 @@ type SerialPort = {
   addEventListener(type: 'disconnect', handler: () => void): void;
 };
 
-// ── ESC/POS 바이트 빌더 ───────────────────────────────────────────
-// 프린터에 직접 전송할 바이트열 생성 (UTF-8 인코딩)
-function buildTicketBytes(order: Order): Uint8Array {
-  const now = new Date();
-  const hh = now.getHours().toString().padStart(2, '0');
-  const mm = now.getMinutes().toString().padStart(2, '0');
-  const enc = new TextEncoder();
-  const b = (...n: number[]) => new Uint8Array(n);
-
-  const segs: Uint8Array[] = [
-    b(0x1B, 0x40),                // ESC @ 초기화
-    b(0x1B, 0x74, 0xFF),          // UTF-8 코드페이지 (지원 모델)
-    b(0x1B, 0x61, 0x01),          // 가운데 정렬
-    b(0x1B, 0x45, 0x01),          // 볼드 ON
-    enc.encode('\xbc\xb3\xc6\xdb\xc5\xa9\xb8\xae\xbd\xba\xc7\xc3 \xc1\xa6\xc3\xa2\xc1\xa1\n'), // fallback: store name
-    b(0x1B, 0x45, 0x00),          // 볼드 OFF
-    enc.encode('\xc1\xd6\xb9\xe6\xbf\xb5\xbc\xf6\xc1\xf5\n'),
-    enc.encode('--------------------------------\n'),
-    b(0x1D, 0x21, 0x11),          // 2배 크기
-    enc.encode(`#${order.order_number}\n`),
-    b(0x1D, 0x21, 0x00),          // 일반 크기
-    b(0x1B, 0x61, 0x00),          // 왼쪽 정렬
-    enc.encode(`${order.table_number ? `Table: ${order.table_number}` : 'Takeout'}  ${hh}:${mm}\n`),
-    enc.encode('--------------------------------\n'),
-    ...order.items.map(i => enc.encode(`${i.menu_name}  x${i.quantity}\n`)),
-    enc.encode('--------------------------------\n'),
-    ...(order.request_note ? [enc.encode(`Memo: ${order.request_note}\n`)] : []),
-    b(0x0A, 0x0A, 0x0A, 0x0A),   // 용지 피드
-    b(0x1D, 0x56, 0x41, 0x00),   // 풀 컷
-  ];
-
-  const total = segs.reduce((n, s) => n + s.length, 0);
-  const buf = new Uint8Array(total);
-  let off = 0;
-  for (const s of segs) { buf.set(s, off); off += s.length; }
+// ── EUC-KR ESC/POS 바이트 (서버 API 경유) ───────────────────────
+async function fetchTicketBytes(order: Order): Promise<Uint8Array> {
+  const res = await fetch('/api/kitchen-print', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(order),
+  });
+  const b64 = await res.text();
+  const bin = atob(b64);
+  const buf = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
   return buf;
 }
 
@@ -126,7 +102,7 @@ export default function OrdersPanel({ storeId, token }: { storeId: string; token
   const openPort = useCallback(async (port: SerialPort) => {
     try {
       if (portOpen.current) return;
-      await port.open({ baudRate: 9600 });
+      await port.open({ baudRate: 38400 });
       portRef.current = port;
       portOpen.current = true;
       setPrinterStatus('connected');
@@ -170,7 +146,7 @@ export default function OrdersPanel({ storeId, token }: { storeId: string; token
   const doPrint = useCallback(async (order: Order) => {
     if (portRef.current && portOpen.current) {
       try {
-        const bytes  = buildTicketBytes(order);
+        const bytes  = await fetchTicketBytes(order);
         const writer = portRef.current.writable!.getWriter();
         await writer.write(bytes);
         writer.releaseLock();
