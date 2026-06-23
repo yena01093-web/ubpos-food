@@ -2,6 +2,13 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useSocket } from '@/components/useSocket';
 
+// Web Serial API 타입 선언 (lib.dom.d.ts에 미포함 버전 대응)
+type SerialPort = {
+  open(options: { baudRate: number }): Promise<void>;
+  writable: WritableStream<Uint8Array>;
+  addEventListener(type: 'disconnect', handler: () => void): void;
+};
+
 // ── ESC/POS 바이트 빌더 ───────────────────────────────────────────
 // 프린터에 직접 전송할 바이트열 생성 (UTF-8 인코딩)
 function buildTicketBytes(order: Order): Uint8Array {
