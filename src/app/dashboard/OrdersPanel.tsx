@@ -2,31 +2,10 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useSocket } from '@/components/useSocket';
 
-// Web Serial API 타입 선언 (lib.dom.d.ts에 미포함 버전 대응)
-type SerialPort = {
-  open(options: { baudRate: number; dataBits?: number; stopBits?: number; parity?: string }): Promise<void>;
-  writable: WritableStream<Uint8Array>;
-  addEventListener(type: 'disconnect', handler: () => void): void;
-};
-
-// ── EUC-KR ESC/POS 바이트 (서버 API 경유) ───────────────────────
-async function fetchTicketBytes(order: Order): Promise<Uint8Array> {
-  const res = await fetch('/api/kitchen-print', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(order),
-  });
-  const b64 = await res.text();
-  const bin = atob(b64);
-  const buf = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
-  return buf;
-}
-
-// ── window.print() 폴백 ──────────────────────────────────────────
+// ── 주방 영수증 자동 출력 (window.print) ─────────────────────────
 function printKitchenTicket(order: Order) {
   const now = new Date();
-  const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+  const timeStr = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
   const fmtP = (n: number) => n.toLocaleString('ko-KR') + '원';
 
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/>
@@ -86,91 +65,15 @@ const NEXT_LABEL: Record<string, string> = {
 };
 
 export default function OrdersPanel({ storeId, token }: { storeId: string; token: string }) {
-  const [orders,        setOrders]        = useState<Order[]>([]);
-  const [summary,       setSummary]       = useState({ total_orders: 0, total_revenue: 0, pending_count: 0 });
-  const [loading,       setLoading]       = useState(true);
-  const [selected,      setSelected]      = useState<Order | null>(null);
-  const [printerStatus, setPrinterStatus] = useState<'disconnected' | 'connected' | 'error'>('disconnected');
-  const [printerError,  setPrinterError]  = useState('');
+  const [orders,   setOrders]   = useState<Order[]>([]);
+  const [summary,  setSummary]  = useState({ total_orders: 0, total_revenue: 0, pending_count: 0 });
+  const [loading,  setLoading]  = useState(true);
+  const [selected, setSelected] = useState<Order | null>(null);
 
   const { joinStore, on } = useSocket(token);
-  const knownIds   = useRef<Set<string>>(new Set());
+  const knownIds    = useRef<Set<string>>(new Set());
   const isFirstLoad = useRef(true);
-  const portRef    = useRef<SerialPort | null>(null);
-  const portOpen   = useRef(false);
 
-  // ── Serial 포트 열기 ──────────────────────────────────────────
-  const openPort = useCallback(async (port: SerialPort) => {
-    try {
-      portOpen.current = false; // 재시도 허용
-      await port.open({ baudRate: 9600, dataBits: 8, stopBits: 1, parity: 'none' });
-      portRef.current  = port;
-      portOpen.current = true;
-      setPrinterStatus('connected');
-      setPrinterError('');
-
-      port.addEventListener('disconnect', () => {
-        portOpen.current = false;
-        portRef.current  = null;
-        setPrinterStatus('disconnected');
-      });
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      setPrinterStatus('error');
-      setPrinterError(msg);
-    }
-  }, []);
-
-  // ── 이전에 허용한 포트 자동 연결 ────────────────────────────
-  useEffect(() => {
-    if (!('serial' in navigator)) return;
-    (navigator as unknown as { serial: { getPorts(): Promise<SerialPort[]> } })
-      .serial.getPorts()
-      .then(ports => { if (ports.length > 0) openPort(ports[0]); })
-      .catch(() => {});
-  }, [openPort]);
-
-  // ── 프린터 연결 버튼 핸들러 ──────────────────────────────────
-  const connectPrinter = useCallback(async () => {
-    if (!('serial' in navigator)) {
-      alert('Web Serial API를 지원하지 않습니다. Chrome 89+ 필요');
-      return;
-    }
-    try {
-      const port = await (navigator as unknown as {
-        serial: { requestPort(o?: object): Promise<SerialPort> }
-      }).serial.requestPort();
-      await openPort(port);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      if (!msg.includes('cancelled') && !msg.includes('No port selected')) {
-        setPrinterStatus('error');
-        setPrinterError(msg);
-      }
-    }
-  }, [openPort]);
-
-  // ── 인쇄 (Serial 우선, 폴백 window.print) ───────────────────
-  const doPrint = useCallback(async (order: Order) => {
-    if (portRef.current && portOpen.current) {
-      try {
-        const bytes  = await fetchTicketBytes(order);
-        const writer = portRef.current.writable!.getWriter();
-        await writer.write(bytes);
-        writer.releaseLock();
-        return;
-      } catch (e) {
-        console.error('Serial print error:', e);
-        setPrinterStatus('error');
-        portOpen.current = false;
-        portRef.current  = null;
-      }
-    }
-    // 폴백: 팝업 프린트
-    printKitchenTicket(order);
-  }, []);
-
-  // ── 로드 + 새 주문 감지 → 자동 출력 ──────────────────────────
   const load = useCallback(async () => {
     const res  = await fetch(`/api/dashboard/orders?storeId=${storeId}`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -186,7 +89,7 @@ export default function OrdersPanel({ storeId, token }: { storeId: string; token
         const newOrders = fetched.filter(o => !knownIds.current.has(o.id));
         newOrders.forEach(o => {
           knownIds.current.add(o.id);
-          doPrint(o);
+          printKitchenTicket(o);
           try { new Audio('/sounds/order.mp3').play(); } catch {}
         });
       }
@@ -199,7 +102,7 @@ export default function OrdersPanel({ storeId, token }: { storeId: string; token
       });
     }
     setLoading(false);
-  }, [storeId, token, doPrint]);
+  }, [storeId, token]);
 
   useEffect(() => {
     load();
@@ -210,7 +113,7 @@ export default function OrdersPanel({ storeId, token }: { storeId: string; token
         knownIds.current.add(newOrder.id);
         setOrders(prev => [newOrder, ...prev]);
         setSummary(s => ({ ...s, total_orders: s.total_orders + 1, pending_count: s.pending_count + 1 }));
-        doPrint(newOrder);
+        printKitchenTicket(newOrder);
         try { new Audio('/sounds/order.mp3').play(); } catch {}
       }
     });
@@ -221,15 +124,13 @@ export default function OrdersPanel({ storeId, token }: { storeId: string; token
     });
 
     return () => { off1(); off2(); };
-  }, [storeId, load, joinStore, on, doPrint]);
+  }, [storeId, load, joinStore, on]);
 
-  // ── 5초 폴링 ─────────────────────────────────────────────────
   useEffect(() => {
     const interval = setInterval(() => { load(); }, 5000);
     return () => clearInterval(interval);
   }, [load]);
 
-  // ── 상태 변경 ─────────────────────────────────────────────────
   const changeStatus = async (orderId: string, status: string) => {
     await fetch(`/api/orders/${orderId}/status`, {
       method: 'PATCH',
@@ -242,42 +143,14 @@ export default function OrdersPanel({ storeId, token }: { storeId: string; token
 
   const activeOrders = orders.filter(o => !['completed', 'cancelled'].includes(o.status));
 
-  const printerBtnColor =
-    printerStatus === 'connected' ? '#10b981' :
-    printerStatus === 'error'     ? '#ef4444' : '#94a3b8';
-  const printerBtnLabel =
-    printerStatus === 'connected' ? '🖨 COM12 연결됨' :
-    printerStatus === 'error'     ? '🖨 오류 - 재연결' : '🖨 프린터 연결';
-
   return (
     <div style={s.root}>
-      {/* 프린터 연결 바 */}
-      <div style={s.printerBar}>
-        <div>
-          <span style={{ fontSize: 12, color: '#64748b' }}>
-            {printerStatus === 'connected'
-              ? '🟢 9600baud · 직접 인쇄 활성'
-              : printerStatus === 'error'
-              ? `🔴 오류: ${printerError || '알 수 없는 오류'}`
-              : '⚪ 프린터 미연결'}
-          </span>
-        </div>
-        <button
-          style={{ ...s.printerBtn, background: printerBtnColor }}
-          onClick={connectPrinter}
-        >
-          {printerBtnLabel}
-        </button>
-      </div>
-
-      {/* 요약 카드 */}
       <div style={s.summaryRow}>
         <SummaryCard label="오늘 주문" value={`${summary.total_orders}건`}  color="#2563eb" />
         <SummaryCard label="오늘 매출" value={fmt(summary.total_revenue)}   color="#10b981" />
         <SummaryCard label="대기 중"   value={`${summary.pending_count}건`} color="#f59e0b" />
       </div>
 
-      {/* 칸반 보드 */}
       <div style={s.kanban}>
         {STATUS_COLS.map(col => {
           const colOrders = activeOrders.filter(o => o.status === col.key);
@@ -305,13 +178,11 @@ export default function OrdersPanel({ storeId, token }: { storeId: string; token
         })}
       </div>
 
-      {/* 주문 상세 모달 */}
       {selected && (
         <OrderDetailModal
           order={selected}
           onClose={() => setSelected(null)}
           onAction={(status) => { changeStatus(selected.id, status); setSelected(null); }}
-          onPrint={() => doPrint(selected)}
         />
       )}
     </div>
@@ -366,17 +237,16 @@ function OrderCard({ order, accentColor, onSelect, onAction, actionLabel }: {
   );
 }
 
-function OrderDetailModal({ order, onClose, onAction, onPrint }: {
+function OrderDetailModal({ order, onClose, onAction }: {
   order: Order; onClose: () => void;
   onAction: (status: string) => void;
-  onPrint: () => void;
 }) {
   return (
     <div style={s.overlay} onClick={onClose}>
       <div style={s.modal} onClick={e => e.stopPropagation()}>
         <div style={s.modalHeader}>
           <span style={s.modalTitle}>{order.order_number}</span>
-          <button style={s.printBtn} onClick={onPrint}>🖨 재인쇄</button>
+          <button style={s.printBtn} onClick={() => printKitchenTicket(order)}>🖨 재인쇄</button>
           <button style={s.closeBtn} onClick={onClose}>✕</button>
         </div>
         <div style={s.modalBody}>
@@ -411,43 +281,41 @@ function OrderDetailModal({ order, onClose, onAction, onPrint }: {
 }
 
 const s: Record<string, React.CSSProperties> = {
-  root:         { display: 'flex', flexDirection: 'column', gap: 20 },
-  loading:      { color: '#94a3b8', padding: 40, textAlign: 'center' },
-  printerBar:   { display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '8px 14px' },
-  printerBtn:   { color: '#fff', border: 'none', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer' },
-  summaryRow:   { display: 'flex', gap: 12 },
-  summaryCard:  { flex: 1, background: '#fff', borderRadius: 12, padding: '16px 20px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' },
-  summaryValue: { fontSize: 22, fontWeight: 800, marginBottom: 4 },
-  summaryLabel: { fontSize: 12, color: '#94a3b8' },
-  kanban:       { display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, alignItems: 'start' },
-  col:          { borderRadius: 14, padding: '14px 10px', minHeight: 200 },
-  colHeader:    { display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 700, fontSize: 14, marginBottom: 10, padding: '0 4px' },
-  colBadge:     { color: '#fff', borderRadius: 20, padding: '2px 8px', fontSize: 12 },
-  colBody:      { display: 'flex', flexDirection: 'column', gap: 8 },
-  emptyCol:     { textAlign: 'center', color: '#cbd5e1', fontSize: 13, padding: '20px 0' },
-  card:         { background: '#fff', borderRadius: 12, padding: '12px 14px', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', transition: 'transform 0.1s', display: 'flex', flexDirection: 'column', gap: 6 },
-  cardTop:      { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  orderNum:     { fontWeight: 800, fontSize: 16 },
-  elapsed:      { fontSize: 12, fontWeight: 600 },
-  tableTag:     { fontSize: 12, color: '#64748b', background: '#f1f5f9', borderRadius: 6, padding: '2px 8px', alignSelf: 'flex-start' },
-  itemList:     { display: 'flex', flexDirection: 'column', gap: 2 },
-  itemRow:      { display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#374151' },
-  itemQty:      { color: '#94a3b8', fontWeight: 600 },
-  moreItems:    { fontSize: 12, color: '#94a3b8' },
-  cardBottom:   { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
-  price:        { fontWeight: 700, fontSize: 14, color: '#1e3a5f' },
-  actionBtn:    { color: '#fff', border: 'none', borderRadius: 8, padding: '6px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer' },
-  note:         { fontSize: 12, color: '#94a3b8', background: '#f8fafc', borderRadius: 6, padding: '4px 8px' },
-  overlay:      { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' },
-  modal:        { background: '#fff', borderRadius: 16, width: '90%', maxWidth: 440, maxHeight: '80vh', display: 'flex', flexDirection: 'column' },
-  modalHeader:  { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '20px 20px 0' },
-  printBtn:     { background: '#f3f4f6', border: 'none', borderRadius: 8, padding: '6px 12px', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: '#374151', marginLeft: 'auto' },
-  modalTitle:   { fontSize: 18, fontWeight: 700 },
-  closeBtn:     { background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#94a3b8' },
-  modalBody:    { padding: '16px 20px', overflowY: 'auto', flex: 1 },
-  modalFooter:  { padding: '12px 20px 20px', display: 'flex', flexDirection: 'column', gap: 8 },
-  detailRow:    { fontSize: 14, color: '#374151', marginBottom: 4 },
-  detailItem:   { display: 'flex', justifyContent: 'space-between', fontSize: 14, padding: '4px 0' },
-  primaryBtn:   { background: '#1e3a5f', color: '#fff', border: 'none', borderRadius: 10, padding: '14px', fontSize: 15, fontWeight: 700, cursor: 'pointer' },
-  cancelBtn:    { background: '#fee2e2', color: '#ef4444', border: 'none', borderRadius: 10, padding: '12px', fontSize: 14, fontWeight: 600, cursor: 'pointer' },
+  root:        { display: 'flex', flexDirection: 'column', gap: 20 },
+  loading:     { color: '#94a3b8', padding: 40, textAlign: 'center' },
+  summaryRow:  { display: 'flex', gap: 12 },
+  summaryCard: { flex: 1, background: '#fff', borderRadius: 12, padding: '16px 20px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' },
+  summaryValue:{ fontSize: 22, fontWeight: 800, marginBottom: 4 },
+  summaryLabel:{ fontSize: 12, color: '#94a3b8' },
+  kanban:      { display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, alignItems: 'start' },
+  col:         { borderRadius: 14, padding: '14px 10px', minHeight: 200 },
+  colHeader:   { display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 700, fontSize: 14, marginBottom: 10, padding: '0 4px' },
+  colBadge:    { color: '#fff', borderRadius: 20, padding: '2px 8px', fontSize: 12 },
+  colBody:     { display: 'flex', flexDirection: 'column', gap: 8 },
+  emptyCol:    { textAlign: 'center', color: '#cbd5e1', fontSize: 13, padding: '20px 0' },
+  card:        { background: '#fff', borderRadius: 12, padding: '12px 14px', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', display: 'flex', flexDirection: 'column', gap: 6 },
+  cardTop:     { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  orderNum:    { fontWeight: 800, fontSize: 16 },
+  elapsed:     { fontSize: 12, fontWeight: 600 },
+  tableTag:    { fontSize: 12, color: '#64748b', background: '#f1f5f9', borderRadius: 6, padding: '2px 8px', alignSelf: 'flex-start' },
+  itemList:    { display: 'flex', flexDirection: 'column', gap: 2 },
+  itemRow:     { display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#374151' },
+  itemQty:     { color: '#94a3b8', fontWeight: 600 },
+  moreItems:   { fontSize: 12, color: '#94a3b8' },
+  cardBottom:  { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
+  price:       { fontWeight: 700, fontSize: 14, color: '#1e3a5f' },
+  actionBtn:   { color: '#fff', border: 'none', borderRadius: 8, padding: '6px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer' },
+  note:        { fontSize: 12, color: '#94a3b8', background: '#f8fafc', borderRadius: 6, padding: '4px 8px' },
+  overlay:     { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  modal:       { background: '#fff', borderRadius: 16, width: '90%', maxWidth: 440, maxHeight: '80vh', display: 'flex', flexDirection: 'column' },
+  modalHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '20px 20px 0' },
+  printBtn:    { background: '#f3f4f6', border: 'none', borderRadius: 8, padding: '6px 12px', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: '#374151', marginLeft: 'auto' },
+  modalTitle:  { fontSize: 18, fontWeight: 700 },
+  closeBtn:    { background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#94a3b8' },
+  modalBody:   { padding: '16px 20px', overflowY: 'auto', flex: 1 },
+  modalFooter: { padding: '12px 20px 20px', display: 'flex', flexDirection: 'column', gap: 8 },
+  detailRow:   { fontSize: 14, color: '#374151', marginBottom: 4 },
+  detailItem:  { display: 'flex', justifyContent: 'space-between', fontSize: 14, padding: '4px 0' },
+  primaryBtn:  { background: '#1e3a5f', color: '#fff', border: 'none', borderRadius: 10, padding: '14px', fontSize: 15, fontWeight: 700, cursor: 'pointer' },
+  cancelBtn:   { background: '#fee2e2', color: '#ef4444', border: 'none', borderRadius: 10, padding: '12px', fontSize: 14, fontWeight: 600, cursor: 'pointer' },
 };
