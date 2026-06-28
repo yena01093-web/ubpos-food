@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JC Hotel · 관리자</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #070e20;
+    color: #e2e8f0;
+    font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+    min-height: 100vh;
+  }
+
+  header {
+    background: #0c1529;
+    border-bottom: 1px solid #1a2030;
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .logo { font-size: 18px; font-weight: 700; color: #d4af6e; }
+
+  .tabs {
+    display: flex;
+    gap: 0;
+    padding: 24px 32px 0;
+    border-bottom: 1px solid #1a2030;
+  }
+
+  .tab {
+    padding: 10px 24px;
+    font-size: 14px;
+    color: #4a5568;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+  }
+
+  .tab.active { color: #d4af6e; border-bottom-color: #d4af6e; }
+
+  .panel { display: none; padding: 32px; }
+  .panel.active { display: block; }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  h2 { font-size: 18px; font-weight: 700; }
+
+  .add-btn {
+    background: #d4af6e;
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .items { display: flex; flex-direction: column; gap: 10px; }
+
+  .item-row {
+    background: #0c1529;
+    border: 1px solid #1a2d50;
+    border-radius: 10px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .item-emoji { font-size: 28px; width: 40px; text-align: center; }
+
+  .item-info { flex: 1; }
+  .item-name { font-size: 15px; font-weight: 600; }
+  .item-desc { font-size: 12px; color: #4a5568; margin-top: 2px; }
+
+  .item-price { font-size: 16px; color: #d4af6e; }
+
+  .del-btn {
+    background: rgba(239,68,68,0.1);
+    color: #ef4444;
+    border: 1px solid rgba(239,68,68,0.2);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  /* 폼 */
+  .form-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    backdrop-filter: blur(8px);
+  }
+
+  .form-overlay.show { display: flex; }
+
+  .form-box {
+    background: #0c1529;
+    border: 1px solid #1a2d50;
+    border-radius: 16px;
+    padding: 32px;
+    width: 480px;
+    max-width: 90vw;
+  }
+
+  .form-title { font-size: 18px; font-weight: 700; margin-bottom: 24px; color: #d4af6e; }
+
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-size: 12px; color: #4a5568; margin-bottom: 6px; letter-spacing: 0.1em; }
+  .form-group input, .form-group select, .form-group textarea {
+    width: 100%;
+    background: #070e20;
+    border: 1px solid #1a2d50;
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: #e2e8f0;
+    font-size: 14px;
+    outline: none;
+    font-family: inherit;
+  }
+  .form-group input:focus, .form-group select:focus { border-color: #d4af6e; }
+
+  .form-btns { display: flex; gap: 10px; margin-top: 24px; }
+  .form-submit { background: #d4af6e; color: #000; border: none; border-radius: 8px; padding: 12px 24px; font-size: 14px; font-weight: 700; cursor: pointer; flex: 1; }
+  .form-cancel { background: rgba(255,255,255,0.05); color: #e2e8f0; border: 1px solid #1a2d50; border-radius: 8px; padding: 12px 24px; font-size: 14px; cursor: pointer; }
+
+  .cat-select { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+  .cat-btn { padding: 7px 16px; border-radius: 6px; border: 1px solid #1a2d50; background: #070e20; color: #e2e8f0; font-size: 13px; cursor: pointer; }
+  .cat-btn.active { background: #d4af6e; color: #000; border-color: #d4af6e; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">JC Hotel · 관리자</div>
+  <div style="font-size:13px;color:#4a5568;">ubpos TV 시스템</div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('menu')">🍷 메뉴 관리</div>
+  <div class="tab" onclick="switchTab('spot')">⛰️ 관광지 관리</div>
+</div>
+
+<!-- 메뉴 패널 -->
+<div class="panel active" id="panel-menu">
+  <div class="section-header">
+    <h2>메뉴 관리</h2>
+    <button class="add-btn" onclick="openForm('menu')">+ 메뉴 추가</button>
+  </div>
+
+  <div class="cat-select" id="menu-cat-select">
+    <button class="cat-btn active" onclick="selectMenuCat(0, this)">🍷 와인·맥주</button>
+    <button class="cat-btn" onclick="selectMenuCat(1, this)">🧀 안주</button>
+    <button class="cat-btn" onclick="selectMenuCat(2, this)">🍿 간식</button>
+    <button class="cat-btn" onclick="selectMenuCat(3, this)">🥤 음료</button>
+  </div>
+
+  <div class="items" id="menu-list"></div>
+</div>
+
+<!-- 관광지 패널 -->
+<div class="panel" id="panel-spot">
+  <div class="section-header">
+    <h2>관광지 관리</h2>
+    <button class="add-btn" onclick="openForm('spot')">+ 관광지 추가</button>
+  </div>
+  <div class="items" id="spot-list"></div>
+</div>
+
+<!-- 메뉴 추가 폼 -->
+<div class="form-overlay" id="form-menu">
+  <div class="form-box">
+    <div class="form-title">메뉴 추가</div>
+    <div class="form-group">
+      <label>이모지</label>
+      <input type="text" id="m-emoji" placeholder="🍷" maxlength="2">
+    </div>
+    <div class="form-group">
+      <label>카테고리</label>
+      <select id="m-cat">
+        <option value="0">🍷 와인·맥주</option>
+        <option value="1">🧀 안주</option>
+        <option value="2">🍿 간식</option>
+        <option value="3">🥤 음료</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>메뉴 이름</label>
+      <input type="text" id="m-name" placeholder="레드 와인">
+    </div>
+    <div class="form-group">
+      <label>설명</label>
+      <input type="text" id="m-desc" placeholder="칠레산 카베르네 소비뇽">
+    </div>
+    <div class="form-group">
+      <label>가격 (원)</label>
+      <input type="number" id="m-price" placeholder="35000">
+    </div>
+    <div class="form-btns">
+      <button class="form-cancel" onclick="closeForm('menu')">취소</button>
+      <button class="form-submit" onclick="addMenu()">추가</button>
+    </div>
+  </div>
+</div>
+
+<!-- 관광지 추가 폼 -->
+<div class="form-overlay" id="form-spot">
+  <div class="form-box">
+    <div class="form-title">관광지 추가</div>
+    <div class="form-group">
+      <label>이모지</label>
+      <input type="text" id="s-emoji" placeholder="⛰️" maxlength="2">
+    </div>
+    <div class="form-group">
+      <label>관광지 이름</label>
+      <input type="text" id="s-name" placeholder="도담삼봉">
+    </div>
+    <div class="form-group">
+      <label>설명</label>
+      <textarea id="s-desc" rows="2" placeholder="남한강 위에 솟은 세 개의 봉우리"></textarea>
+    </div>
+    <div class="form-group">
+      <label>호텔에서 거리</label>
+      <input type="text" id="s-distance" placeholder="🚗 차로 5분">
+    </div>
+    <div class="form-btns">
+      <button class="form-cancel" onclick="closeForm('spot')">취소</button>
+      <button class="form-submit" onclick="addSpot()">추가</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCpLSUhQ7tT2lFLMESRjPe9k-xrm8bWkiA",
+    authDomain: "ubpos-tv.firebaseapp.com",
+    projectId: "ubpos-tv",
+    storageBucket: "ubpos-tv.firebasestorage.app",
+    messagingSenderId: "211927218968",
+    appId: "1:211927218968:web:d339540a90d183feabbc6d"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  window.db = db;
+
+  let currentMenuCat = 0;
+
+  window.switchTab = (tab) => {
+    document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', (i === 0 && tab === 'menu') || (i === 1 && tab === 'spot')));
+    document.getElementById('panel-menu').classList.toggle('active', tab === 'menu');
+    document.getElementById('panel-spot').classList.toggle('active', tab === 'spot');
+    if (tab === 'spot') loadSpots();
+    else loadMenus();
+  };
+
+  window.selectMenuCat = (cat, btn) => {
+    currentMenuCat = cat;
+    document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    loadMenus();
+  };
+
+  window.openForm = (type) => document.getElementById('form-' + type).classList.add('show');
+  window.closeForm = (type) => document.getElementById('form-' + type).classList.remove('show');
+
+  // 메뉴 로드
+  window.loadMenus = async () => {
+    const q = query(collection(db, 'menus'), where('cat', '==', currentMenuCat));
+    const snap = await getDocs(q);
+    const el = document.getElementById('menu-list');
+    if (snap.empty) { el.innerHTML = '<div style="color:#4a5568;padding:20px;">메뉴가 없습니다. 추가해주세요.</div>'; return; }
+    el.innerHTML = snap.docs.map(d => {
+      const m = d.data();
+      return `<div class="item-row">
+        <div class="item-emoji">${m.emoji}</div>
+        <div class="item-info"><div class="item-name">${m.name}</div><div class="item-desc">${m.desc}</div></div>
+        <div class="item-price">₩ ${Number(m.price).toLocaleString()}</div>
+        <button class="del-btn" onclick="deleteItem('menus','${d.id}', loadMenus)">삭제</button>
+      </div>`;
+    }).join('');
+  };
+
+  // 관광지 로드
+  window.loadSpots = async () => {
+    const snap = await getDocs(collection(db, 'spots'));
+    const el = document.getElementById('spot-list');
+    if (snap.empty) { el.innerHTML = '<div style="color:#4a5568;padding:20px;">관광지가 없습니다. 추가해주세요.</div>'; return; }
+    el.innerHTML = snap.docs.map(d => {
+      const s = d.data();
+      return `<div class="item-row">
+        <div class="item-emoji">${s.emoji}</div>
+        <div class="item-info"><div class="item-name">${s.name}</div><div class="item-desc">${s.desc}</div></div>
+        <div class="item-price" style="font-size:13px;color:#4a5568;">${s.distance}</div>
+        <button class="del-btn" onclick="deleteItem('spots','${d.id}', loadSpots)">삭제</button>
+      </div>`;
+    }).join('');
+  };
+
+  window.addMenu = async () => {
+    const emoji = document.getElementById('m-emoji').value || '🍽️';
+    const cat = parseInt(document.getElementById('m-cat').value);
+    const name = document.getElementById('m-name').value;
+    const desc = document.getElementById('m-desc').value;
+    const price = parseInt(document.getElementById('m-price').value);
+    if (!name || !price) return alert('이름과 가격을 입력해주세요');
+    await addDoc(collection(db, 'menus'), { emoji, cat, name, desc, price, createdAt: serverTimestamp() });
+    closeForm('menu');
+    loadMenus();
+  };
+
+  window.addSpot = async () => {
+    const emoji = document.getElementById('s-emoji').value || '📍';
+    const name = document.getElementById('s-name').value;
+    const desc = document.getElementById('s-desc').value;
+    const distance = document.getElementById('s-distance').value;
+    if (!name) return alert('이름을 입력해주세요');
+    await addDoc(collection(db, 'spots'), { emoji, name, desc, distance, createdAt: serverTimestamp() });
+    closeForm('spot');
+    loadSpots();
+  };
+
+  window.deleteItem = async (col, id, reload) => {
+    if (!confirm('삭제하시겠습니까?')) return;
+    await deleteDoc(doc(db, col, id));
+    reload();
+  };
+
+  // 초기 로드
+  loadMenus();
+</script>
+
+</body>
+</html>
