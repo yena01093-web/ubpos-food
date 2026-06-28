@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JC Hotel · 프론트데스크</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #070e20;
+    color: #e2e8f0;
+    font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+    min-height: 100vh;
+  }
+
+  header {
+    background: #0c1529;
+    border-bottom: 1px solid #1a2030;
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .logo { font-size: 18px; font-weight: 700; color: #d4af6e; }
+  .time { font-size: 14px; color: #4a5568; }
+
+  .main { padding: 32px; }
+
+  h2 { font-size: 20px; font-weight: 700; margin-bottom: 20px; }
+
+  .orders { display: flex; flex-direction: column; gap: 12px; }
+
+  .order-card {
+    background: #0c1529;
+    border: 1px solid #1a2d50;
+    border-radius: 12px;
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .order-card.pending { border-left: 4px solid #fb923c; }
+  .order-card.done { border-left: 4px solid #4ade80; opacity: 0.5; }
+
+  .room-badge {
+    background: #1a2030;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 24px;
+    font-weight: 700;
+    color: #d4af6e;
+    min-width: 80px;
+    text-align: center;
+  }
+
+  .order-items { flex: 1; }
+  .order-items-title { font-size: 13px; color: #4a5568; margin-bottom: 4px; }
+  .order-items-list { font-size: 15px; line-height: 1.6; }
+
+  .order-meta { text-align: right; }
+  .order-total { font-size: 20px; color: #d4af6e; font-weight: 600; }
+  .order-time { font-size: 12px; color: #4a5568; margin-top: 4px; }
+
+  .done-btn {
+    background: #4ade80;
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .empty { text-align: center; padding: 80px; color: #4a5568; font-size: 16px; }
+
+  /* 체크인 패널 */
+  .checkin-panel {
+    background: #0c1529;
+    border: 1px solid #1a2d50;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .checkin-panel h3 { font-size: 16px; color: #d4af6e; margin-bottom: 12px; }
+
+  .room-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .room-btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: 1px solid #1a2d50;
+    background: #070e20;
+    color: #e2e8f0;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .room-btn:hover { border-color: #d4af6e; color: #d4af6e; }
+  .room-btn.active { background: #d4af6e; color: #000; border-color: #d4af6e; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">JC Hotel · 프론트데스크</div>
+  <div class="time" id="clock"></div>
+</header>
+
+<div class="main">
+
+  <!-- 체크인 -->
+  <div class="checkin-panel">
+    <div style="flex:1">
+      <h3>📋 객실 체크인 활성화</h3>
+      <div class="room-btns" id="room-btns">
+        <!-- 동적 생성 -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 주문 현황 -->
+  <h2>🔔 주문 현황</h2>
+  <div class="orders" id="orders">
+    <div class="empty">들어온 주문이 없습니다</div>
+  </div>
+
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, onSnapshot, doc, updateDoc, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCpLSUhQ7tT2lFLMESRjPe9k-xrm8bWkiA",
+    authDomain: "ubpos-tv.firebaseapp.com",
+    projectId: "ubpos-tv",
+    storageBucket: "ubpos-tv.firebasestorage.app",
+    messagingSenderId: "211927218968",
+    appId: "1:211927218968:web:d339540a90d183feabbc6d"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // 시계
+  setInterval(() => {
+    document.getElementById('clock').textContent = new Date().toLocaleTimeString('ko-KR');
+  }, 1000);
+
+  // 객실 버튼
+  const rooms = ['101', '102', '103', '201', '202', '203', '301', '302', '303'];
+  const activeRooms = new Set();
+  const roomBtns = document.getElementById('room-btns');
+  rooms.forEach(r => {
+    const btn = document.createElement('button');
+    btn.className = 'room-btn';
+    btn.textContent = r + '호';
+    btn.onclick = () => {
+      if (activeRooms.has(r)) activeRooms.delete(r);
+      else activeRooms.add(r);
+      btn.classList.toggle('active', activeRooms.has(r));
+    };
+    roomBtns.appendChild(btn);
+  });
+
+  // 주문 실시간 수신
+  const q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'), limit(20));
+  onSnapshot(q, (snap) => {
+    const el = document.getElementById('orders');
+    if (snap.empty) {
+      el.innerHTML = '<div class="empty">들어온 주문이 없습니다</div>';
+      return;
+    }
+    el.innerHTML = snap.docs.map(d => {
+      const o = d.data();
+      const time = o.createdAt?.toDate?.()?.toLocaleTimeString('ko-KR') || '방금';
+      const items = o.items?.map(i => `${i.emoji} ${i.name}`).join(', ') || '';
+      const isDone = o.status === 'done';
+      return `
+        <div class="order-card ${isDone ? 'done' : 'pending'}">
+          <div class="room-badge">${o.room}호</div>
+          <div class="order-items">
+            <div class="order-items-title">주문 내역</div>
+            <div class="order-items-list">${items}</div>
+          </div>
+          <div class="order-meta">
+            <div class="order-total">₩ ${(o.total || 0).toLocaleString()}</div>
+            <div class="order-time">${time}</div>
+          </div>
+          ${!isDone ? `<button class="done-btn" onclick="markDone('${d.id}')">완료</button>` : '<span style="color:#4ade80;font-size:13px;">✓ 완료</span>'}
+        </div>
+      `;
+    }).join('');
+  });
+
+  window.markDone = async (id) => {
+    await updateDoc(doc(db, 'orders', id), { status: 'done' });
+  };
+</script>
+
+</body>
+</html>
