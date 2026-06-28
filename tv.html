@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JC Hotel</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #060d1f;
+    color: #fff;
+    font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    cursor: none;
+  }
+
+  /* 화면 전환 */
+  .screen {
+    position: absolute;
+    inset: 0;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.8s ease;
+  }
+  .screen.active {
+    display: flex;
+    opacity: 1;
+  }
+
+  /* ===== 오프닝 화면 ===== */
+  #screen-opening {
+    background: #060d1f;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .hotel-logo {
+    font-size: 72px;
+    font-weight: 200;
+    letter-spacing: 0.3em;
+    color: #d4af6e;
+    text-transform: uppercase;
+    animation: fadeInUp 1s ease forwards;
+  }
+
+  .hotel-tagline {
+    font-size: 18px;
+    letter-spacing: 0.5em;
+    color: rgba(255,255,255,0.4);
+    margin-top: 16px;
+    text-transform: uppercase;
+    animation: fadeInUp 1s 0.3s ease forwards;
+    opacity: 0;
+  }
+
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ===== 메인 루프 화면 ===== */
+  #screen-main {
+    flex-direction: column;
+  }
+
+  .main-bg {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, #070e20 0%, #0d1a35 50%, #070e20 100%);
+  }
+
+  .main-content {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* 왼쪽 — 슬라이드 */
+  .slide-area {
+    padding: 60px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .slide-eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.4em;
+    color: #d4af6e;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+
+  .slide-title {
+    font-size: 52px;
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    margin-bottom: 16px;
+  }
+
+  .slide-desc {
+    font-size: 18px;
+    color: rgba(255,255,255,0.55);
+    line-height: 1.7;
+    margin-bottom: 32px;
+  }
+
+  .slide-price {
+    font-size: 36px;
+    font-weight: 300;
+    color: #d4af6e;
+    letter-spacing: 0.05em;
+  }
+
+  .slide-distance {
+    font-size: 14px;
+    color: rgba(255,255,255,0.4);
+    margin-top: 8px;
+    letter-spacing: 0.1em;
+  }
+
+  /* 오른쪽 — 이미지 */
+  .slide-image-area {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .slide-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.7;
+  }
+
+  .slide-image-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 120px;
+    background: linear-gradient(135deg, #0d1a35, #162040);
+  }
+
+  /* 하단 바 */
+  .bottom-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 24px 60px;
+    background: linear-gradient(transparent, rgba(0,0,0,0.8));
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 10;
+  }
+
+  .bottom-hint {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+    color: rgba(255,255,255,0.5);
+  }
+
+  .btn-hint {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 6px;
+    font-size: 12px;
+  }
+
+  /* 슬라이드 인디케이터 */
+  .slide-dots {
+    display: flex;
+    gap: 8px;
+  }
+
+  .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.3);
+    transition: all 0.3s;
+  }
+
+  .dot.active {
+    background: #d4af6e;
+    width: 24px;
+    border-radius: 3px;
+  }
+
+  /* 날씨 */
+  .weather-widget {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: rgba(255,255,255,0.5);
+  }
+
+  /* ===== 주문 화면 ===== */
+  #screen-order {
+    background: #070e20;
+    flex-direction: column;
+  }
+
+  .order-header {
+    padding: 32px 60px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .order-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: #d4af6e;
+    letter-spacing: 0.05em;
+  }
+
+  .order-back {
+    font-size: 13px;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 0.1em;
+  }
+
+  /* 카테고리 탭 */
+  .category-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 24px 60px 0;
+  }
+
+  .cat-tab {
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-size: 15px;
+    color: rgba(255,255,255,0.4);
+    border: 1px solid rgba(255,255,255,0.1);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .cat-tab.focused {
+    background: #d4af6e;
+    color: #000;
+    border-color: #d4af6e;
+    font-weight: 700;
+  }
+
+  /* 메뉴 그리드 */
+  .menu-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    padding: 24px 60px;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .menu-card {
+    background: rgba(255,255,255,0.04);
+    border: 2px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .menu-card.focused {
+    border-color: #d4af6e;
+    background: rgba(212,175,110,0.08);
+    transform: scale(1.02);
+  }
+
+  .menu-emoji {
+    font-size: 36px;
+  }
+
+  .menu-name {
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  .menu-desc-small {
+    font-size: 12px;
+    color: rgba(255,255,255,0.4);
+    line-height: 1.5;
+  }
+
+  .menu-price {
+    font-size: 18px;
+    color: #d4af6e;
+    font-weight: 300;
+    margin-top: auto;
+  }
+
+  /* 장바구니 */
+  .cart-bar {
+    padding: 20px 60px;
+    background: rgba(212,175,110,0.1);
+    border-top: 1px solid rgba(212,175,110,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .cart-info {
+    font-size: 16px;
+    color: rgba(255,255,255,0.7);
+  }
+
+  .cart-total {
+    font-size: 24px;
+    color: #d4af6e;
+    font-weight: 600;
+  }
+
+  .cart-btn {
+    padding: 12px 32px;
+    background: #d4af6e;
+    color: #000;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+
+  /* ===== 주문완료 화면 ===== */
+  #screen-complete {
+    background: #060d1f;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+  }
+
+  .complete-icon {
+    font-size: 80px;
+  }
+
+  .complete-title {
+    font-size: 36px;
+    font-weight: 700;
+    color: #d4af6e;
+  }
+
+  .complete-msg {
+    font-size: 18px;
+    color: rgba(255,255,255,0.5);
+    text-align: center;
+    line-height: 1.7;
+  }
+
+  .complete-time {
+    font-size: 48px;
+    font-weight: 200;
+    color: #fff;
+    letter-spacing: 0.1em;
+  }
+
+  /* ===== 팝업 ===== */
+  .popup-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    backdrop-filter: blur(8px);
+  }
+
+  .popup-overlay.show {
+    display: flex;
+  }
+
+  .popup {
+    background: #0c1529;
+    border: 1px solid rgba(212,175,110,0.3);
+    border-radius: 16px;
+    padding: 48px;
+    text-align: center;
+    max-width: 480px;
+    width: 90%;
+  }
+
+  .popup-title {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+
+  .popup-desc {
+    font-size: 16px;
+    color: rgba(255,255,255,0.5);
+    margin-bottom: 32px;
+    line-height: 1.6;
+  }
+
+  .popup-btns {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+  }
+
+  .popup-btn {
+    padding: 14px 32px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .popup-btn.yes {
+    background: #d4af6e;
+    color: #000;
+  }
+
+  .popup-btn.no {
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+
+  .popup-btn.focused {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+  }
+</style>
+</head>
+<body>
+
+<!-- 오프닝 -->
+<div class="screen active" id="screen-opening">
+  <div class="hotel-logo">JC Hotel</div>
+  <div class="hotel-tagline">단양 · Danyang</div>
+</div>
+
+<!-- 메인 루프 -->
+<div class="screen" id="screen-main">
+  <div class="main-bg"></div>
+  <div class="main-content">
+    <div class="slide-area">
+      <div class="slide-eyebrow" id="slide-eyebrow">룸서비스</div>
+      <div class="slide-title" id="slide-title">별이 빛나는 밤,<br>와인 한 잔</div>
+      <div class="slide-desc" id="slide-desc">은은한 조명 아래 특별한 밤을 더 특별하게.</div>
+      <div class="slide-price" id="slide-price">₩ 35,000</div>
+      <div class="slide-distance" id="slide-distance"></div>
+    </div>
+    <div class="slide-image-area">
+      <div class="slide-image-placeholder" id="slide-image">🍷</div>
+    </div>
+  </div>
+
+  <div class="bottom-bar">
+    <div class="weather-widget" id="weather">🌙 단양 18°C · 맑음</div>
+    <div class="slide-dots" id="slide-dots"></div>
+    <div class="bottom-hint">
+      <span class="btn-hint">OK</span>
+      <span>주문하기</span>
+    </div>
+  </div>
+</div>
+
+<!-- 주문 화면 -->
+<div class="screen" id="screen-order">
+  <div class="order-header">
+    <div class="order-title">📋 룸서비스 주문</div>
+    <div class="order-back">← 뒤로가기</div>
+  </div>
+
+  <div class="category-tabs" id="category-tabs">
+    <div class="cat-tab focused">🍷 와인·맥주</div>
+    <div class="cat-tab">🧀 안주</div>
+    <div class="cat-tab">🍿 간식</div>
+    <div class="cat-tab">🥤 음료</div>
+  </div>
+
+  <div class="menu-grid" id="menu-grid">
+    <!-- Firebase에서 동적 로드 -->
+  </div>
+
+  <div class="cart-bar">
+    <div class="cart-info" id="cart-info">장바구니가 비어있습니다</div>
+    <div class="cart-total" id="cart-total"></div>
+    <div class="cart-btn">주문 확정 →</div>
+  </div>
+</div>
+
+<!-- 주문완료 -->
+<div class="screen" id="screen-complete">
+  <div class="complete-icon">✅</div>
+  <div class="complete-title">주문이 접수되었습니다</div>
+  <div class="complete-msg">곧 객실로 배달해드리겠습니다<br>잠시만 기다려 주세요</div>
+  <div class="complete-time" id="complete-time">약 20분</div>
+</div>
+
+<!-- 추가주문 팝업 -->
+<div class="popup-overlay" id="popup-extra">
+  <div class="popup">
+    <div class="popup-title">추가 주문 하시겠습니까?</div>
+    <div class="popup-desc">메뉴로 돌아가거나<br>TV를 시청하실 수 있습니다</div>
+    <div class="popup-btns">
+      <div class="popup-btn yes focused" id="popup-yes">메뉴 보기</div>
+      <div class="popup-btn no" id="popup-no">TV 시청</div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, getDocs, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCpLSUhQ7tT2lFLMESRjPe9k-xrm8bWkiA",
+    authDomain: "ubpos-tv.firebaseapp.com",
+    projectId: "ubpos-tv",
+    storageBucket: "ubpos-tv.firebasestorage.app",
+    messagingSenderId: "211927218968",
+    appId: "1:211927218968:web:d339540a90d183feabbc6d"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // ===== 상태 =====
+  let currentScreen = 'opening';
+  let slideIndex = 0;
+  let slideTimer = null;
+  let menuFocusRow = 0;
+  let menuFocusCol = 0;
+  let catFocus = 0;
+  let popupFocus = 0; // 0=예, 1=아니오
+  let cart = [];
+  let currentCategory = 0;
+  let slides = [];
+  let menus = { 0: [], 1: [], 2: [], 3: [] };
+  const ROOM_NUMBER = new URLSearchParams(location.search).get('room') || '101';
+  const COLS = 4;
+
+  // ===== 샘플 슬라이드 데이터 (Firebase 연동 전) =====
+  const sampleSlides = [
+    { type: 'menu', eyebrow: '오늘의 추천', title: '별이 빛나는 밤,\n와인 한 잔', desc: '은은한 조명 아래 특별한 밤을 더 특별하게.', price: '₩ 35,000', emoji: '🍷', distance: '' },
+    { type: 'menu', eyebrow: '인기 안주', title: '치즈 플래터\n& 하몽', desc: '엄선된 유럽산 치즈와 이베리코 하몽의 조화.', price: '₩ 28,000', emoji: '🧀', distance: '' },
+    { type: 'spot', eyebrow: '단양 관광', title: '도담삼봉', desc: '남한강 위에 솟은 세 개의 봉우리. 단양 8경 중 으뜸.', price: '', emoji: '⛰️', distance: '🚗 차로 5분' },
+    { type: 'spot', eyebrow: '단양 관광', title: '고수동굴', desc: '4억 5천만 년 역사의 천연 석회암 동굴.', price: '', emoji: '🦇', distance: '🚗 차로 10분' },
+    { type: 'spot', eyebrow: '추천 코스', title: '단양 당일 코스', desc: '도담삼봉 → 마늘시장 → 구경시장 → 사인암', price: '', emoji: '🗺️', distance: '총 소요 5~6시간' },
+  ];
+
+  // ===== 샘플 메뉴 =====
+  const sampleMenus = {
+    0: [ // 와인·맥주
+      { name: '레드 와인', desc: '칠레산 카베르네 소비뇽', price: 35000, emoji: '🍷' },
+      { name: '화이트 와인', desc: '프랑스산 샤르도네', price: 35000, emoji: '🥂' },
+      { name: '단양 수제맥주', desc: '지역 브루어리 한정', price: 12000, emoji: '🍺' },
+      { name: '스파클링 와인', desc: '이탈리아 프로세코', price: 38000, emoji: '✨' },
+    ],
+    1: [ // 안주
+      { name: '치즈 플래터', desc: '고르곤졸라·브리·체다 3종', price: 28000, emoji: '🧀' },
+      { name: '하몽 & 올리브', desc: '이베리코 하몽 + 올리브 믹스', price: 24000, emoji: '🥩' },
+      { name: '과일 플래터', desc: '제철 과일 모둠', price: 18000, emoji: '🍇' },
+      { name: '견과류 믹스', desc: '프리미엄 견과류 5종', price: 14000, emoji: '🥜' },
+    ],
+    2: [ // 간식
+      { name: '컵라면', desc: '신라면 / 너구리 선택', price: 3000, emoji: '🍜' },
+      { name: '과자 세트', desc: '인기 과자 5종 모둠', price: 8000, emoji: '🍿' },
+      { name: '초콜릿', desc: '벨기에 프리미엄', price: 9000, emoji: '🍫' },
+      { name: '아이스크림', desc: '바닐라 / 딸기 선택', price: 6000, emoji: '🍦' },
+    ],
+    3: [ // 음료
+      { name: '생수 2병', desc: '제주 삼다수', price: 4000, emoji: '💧' },
+      { name: '아메리카노', desc: '핸드드립 커피', price: 5000, emoji: '☕' },
+      { name: '주스 모둠', desc: '오렌지·사과·포도', price: 6000, emoji: '🧃' },
+      { name: '탄산음료', desc: '콜라·사이다·환타', price: 3000, emoji: '🥤' },
+    ]
+  };
+  menus = sampleMenus;
+  slides = sampleSlides;
+
+  // ===== 화면 전환 =====
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => {
+      s.classList.remove('active');
+      s.style.display = 'none';
+    });
+    const el = document.getElementById('screen-' + id);
+    el.style.display = 'flex';
+    setTimeout(() => el.classList.add('active'), 10);
+    currentScreen = id;
+  }
+
+  // ===== 오프닝 =====
+  setTimeout(() => {
+    showScreen('main');
+    startSlideShow();
+    loadWeather();
+    renderDots();
+    renderSlide(0);
+  }, 2500);
+
+  // ===== 슬라이드쇼 =====
+  function startSlideShow() {
+    slideTimer = setInterval(() => {
+      slideIndex = (slideIndex + 1) % slides.length;
+      renderSlide(slideIndex);
+    }, 5000);
+  }
+
+  function renderSlide(i) {
+    const s = slides[i];
+    document.getElementById('slide-eyebrow').textContent = s.eyebrow;
+    document.getElementById('slide-title').innerHTML = s.title.replace('\n', '<br>');
+    document.getElementById('slide-desc').textContent = s.desc;
+    document.getElementById('slide-price').textContent = s.price;
+    document.getElementById('slide-distance').textContent = s.distance;
+    document.getElementById('slide-image').textContent = s.emoji;
+    renderDots();
+  }
+
+  function renderDots() {
+    const el = document.getElementById('slide-dots');
+    el.innerHTML = slides.map((_, i) => `<div class="dot ${i === slideIndex ? 'active' : ''}"></div>`).join('');
+  }
+
+  // ===== 날씨 =====
+  async function loadWeather() {
+    try {
+      const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=36.98&longitude=128.36&current=temperature_2m,weathercode&timezone=Asia%2FSeoul');
+      const data = await res.json();
+      const temp = Math.round(data.current.temperature_2m);
+      const code = data.current.weathercode;
+      const icon = code === 0 ? '☀️' : code < 50 ? '⛅' : code < 70 ? '🌧️' : '❄️';
+      document.getElementById('weather').textContent = `${icon} 단양 ${temp}°C`;
+    } catch(e) {}
+  }
+
+  // ===== 주문 화면 =====
+  function showOrder() {
+    clearInterval(slideTimer);
+    showScreen('order');
+    catFocus = 0;
+    menuFocusRow = 0;
+    menuFocusCol = 0;
+    renderCategories();
+    renderMenus();
+  }
+
+  function renderCategories() {
+    const tabs = document.querySelectorAll('.cat-tab');
+    tabs.forEach((t, i) => t.classList.toggle('focused', i === catFocus));
+  }
+
+  function renderMenus() {
+    const grid = document.getElementById('menu-grid');
+    const items = menus[currentCategory] || [];
+    grid.innerHTML = items.map((m, i) => `
+      <div class="menu-card" data-idx="${i}">
+        <div class="menu-emoji">${m.emoji}</div>
+        <div class="menu-name">${m.name}</div>
+        <div class="menu-desc-small">${m.desc}</div>
+        <div class="menu-price">₩ ${m.price.toLocaleString()}</div>
+      </div>
+    `).join('');
+    updateMenuFocus();
+    updateCart();
+  }
+
+  function updateMenuFocus() {
+    const cards = document.querySelectorAll('.menu-card');
+    cards.forEach((c, i) => {
+      const row = Math.floor(i / COLS);
+      const col = i % COLS;
+      c.classList.toggle('focused', row === menuFocusRow && col === menuFocusCol);
+    });
+  }
+
+  function updateCart() {
+    const total = cart.reduce((s, i) => s + i.price, 0);
+    document.getElementById('cart-info').textContent = cart.length > 0 ? `${cart.length}개 선택됨` : '장바구니가 비어있습니다';
+    document.getElementById('cart-total').textContent = total > 0 ? `₩ ${total.toLocaleString()}` : '';
+  }
+
+  // ===== 주문 완료 =====
+  async function submitOrder() {
+    if (cart.length === 0) return;
+    try {
+      await addDoc(collection(db, 'orders'), {
+        room: ROOM_NUMBER,
+        items: cart,
+        total: cart.reduce((s, i) => s + i.price, 0),
+        status: 'pending',
+        createdAt: serverTimestamp()
+      });
+    } catch(e) { console.log('order saved locally'); }
+    cart = [];
+    showScreen('complete');
+    setTimeout(() => {
+      showScreen('main');
+      startSlideShow();
+    }, 8000);
+  }
+
+  // ===== 키보드 (리모콘 시뮬레이션) =====
+  document.addEventListener('keydown', (e) => {
+    // 팝업
+    if (document.getElementById('popup-extra').classList.contains('show')) {
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        popupFocus = popupFocus === 0 ? 1 : 0;
+        document.getElementById('popup-yes').classList.toggle('focused', popupFocus === 0);
+        document.getElementById('popup-no').classList.toggle('focused', popupFocus === 1);
+      }
+      if (e.key === 'Enter') {
+        document.getElementById('popup-extra').classList.remove('show');
+        if (popupFocus === 0) showOrder();
+        else { showScreen('main'); startSlideShow(); }
+      }
+      return;
+    }
+
+    if (currentScreen === 'main') {
+      if (e.key === 'Enter') showOrder();
+      if (e.key === 'ArrowLeft') { slideIndex = (slideIndex - 1 + slides.length) % slides.length; renderSlide(slideIndex); }
+      if (e.key === 'ArrowRight') { slideIndex = (slideIndex + 1) % slides.length; renderSlide(slideIndex); }
+    }
+
+    if (currentScreen === 'order') {
+      const items = menus[currentCategory] || [];
+      const rows = Math.ceil(items.length / COLS);
+
+      if (e.key === 'ArrowLeft') {
+        if (menuFocusCol > 0) menuFocusCol--;
+        else { catFocus = Math.max(0, catFocus - 1); currentCategory = catFocus; renderMenus(); renderCategories(); return; }
+        updateMenuFocus();
+      }
+      if (e.key === 'ArrowRight') {
+        if (menuFocusCol < COLS - 1 && menuFocusRow * COLS + menuFocusCol + 1 < items.length) menuFocusCol++;
+        else { catFocus = Math.min(3, catFocus + 1); currentCategory = catFocus; renderMenus(); renderCategories(); return; }
+        updateMenuFocus();
+      }
+      if (e.key === 'ArrowUp') { menuFocusRow = Math.max(0, menuFocusRow - 1); updateMenuFocus(); }
+      if (e.key === 'ArrowDown') { menuFocusRow = Math.min(rows - 1, menuFocusRow + 1); updateMenuFocus(); }
+      if (e.key === 'Enter') {
+        const idx = menuFocusRow * COLS + menuFocusCol;
+        if (idx < items.length) { cart.push(items[idx]); updateCart(); }
+      }
+      if (e.key === 'Backspace' || e.key === 'Escape') {
+        showScreen('main'); startSlideShow();
+      }
+      if (e.key === ' ') submitOrder();
+    }
+
+    if (currentScreen === 'complete') {
+      if (e.key === 'Enter') {
+        popupFocus = 0;
+        document.getElementById('popup-yes').classList.add('focused');
+        document.getElementById('popup-no').classList.remove('focused');
+        document.getElementById('popup-extra').classList.add('show');
+      }
+    }
+  });
+</script>
+
+</body>
+</html>
