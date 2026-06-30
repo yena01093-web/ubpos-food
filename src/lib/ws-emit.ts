@@ -1,6 +1,6 @@
 // Next.js API Route에서 WebSocket 이벤트 발행
-const WS_URL    = process.env.WS_INTERNAL_URL ?? 'http://localhost:3001';
-const WS_SECRET = process.env.EMIT_SECRET     ?? 'emit_dev_secret';
+const WS_URL    = (process.env.WS_INTERNAL_URL ?? 'http://localhost:3001').replace(/^﻿/, '').trim();
+const WS_SECRET = (process.env.EMIT_SECRET     ?? 'emit_dev_secret').replace(/^﻿/, '').trim();
 
 export async function emit(room: string, event: string, data: unknown) {
   try {
