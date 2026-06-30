@@ -3,7 +3,7 @@ import { query, queryOne } from '@/lib/db';
 import { emitToDashboard, emitToOrder } from '@/lib/ws-emit';
 import crypto from 'crypto';
 
-const NICE_SECRET_KEY = process.env.NICE_SECRET_KEY!;
+const NICE_SECRET_KEY = (process.env.NICE_MERCHANT_KEY ?? process.env.NICE_SECRET_KEY ?? '').replace(/^﻿/, '').trim();
 const APP_URL = 'https://ubpos-food.vercel.app';
 
 function jsRedirect(url: string) {
