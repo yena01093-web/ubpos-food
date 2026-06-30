@@ -10,9 +10,9 @@ const nextConfig = {
           {
             key: 'Content-Security-Policy',
             value: [
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://pg-web.nicepay.co.kr",
-              "frame-src 'self' https://pg-web.nicepay.co.kr",
-              "connect-src 'self' https://pg-web.nicepay.co.kr wss: ws:",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.nicepay.co.kr",
+              "frame-src 'self' https://*.nicepay.co.kr",
+              "connect-src 'self' https://*.nicepay.co.kr wss: ws:",
             ].join('; '),
           },
         ],
