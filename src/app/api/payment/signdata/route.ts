@@ -38,6 +38,7 @@ export async function POST(req: NextRequest) {
     // SignData = hex(sha256(EdiDate + MID + Amt + MerchantKey))
     const plainText = ediDate + mid + amt + merchantKey;
     const signData  = crypto.createHash('sha256').update(plainText).digest('hex');
+    console.error('[NICE-DEBUG] mid:', mid, '| amt:', amt, '| ediDate:', ediDate, '| keyLen:', merchantKey?.length, '| signData(8):', signData.substring(0,8));
 
     // nice_amount에 금액 기록 (승인 시 검증용)
     await query(
