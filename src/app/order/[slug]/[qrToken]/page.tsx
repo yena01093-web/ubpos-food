@@ -59,6 +59,17 @@ export default function OrderPage({ params }: { params: { slug: string; qrToken:
     document.head.appendChild(script);
   }, []);
 
+  // NICE receiveMessageValue가 MetaMask 등 익스텐션의 object 메시지를 eval()하다
+  // "Unexpected identifier 'Object'" SyntaxError가 발생하는 것을 막음.
+  // NICE 결제창은 string(query string) 메시지만 사용하므로 object 메시지는 차단해도 안전.
+  useEffect(() => {
+    const blockNonStringMessages = (e: MessageEvent) => {
+      if (typeof e.data !== 'string') e.stopImmediatePropagation();
+    };
+    window.addEventListener('message', blockNonStringMessages, true);
+    return () => window.removeEventListener('message', blockNonStringMessages, true);
+  }, []);
+
   useEffect(() => {
     (async () => {
       try {
