@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
 
     const mid         = process.env.NICE_MID!;
     const merchantKey = process.env.NICE_SECRET_KEY!;
-    const amt         = String(order.total_price);
+    const amt         = String(Math.round(Number(order.total_price)));
     const moid        = order.id.replace(/-/g, '').substring(0, 64); // 특수문자 제거
     const goodsName   = `ubpos Food 주문 ${order.order_number}`;
 

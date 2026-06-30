@@ -121,7 +121,7 @@ export default function OrderPage({ params }: { params: { slug: string; qrToken:
       const { mid, amt, moid, goodsName, ediDate, signData } = sdData.data;
       const returnURL = `${window.location.origin}/api/payment/result`;
       const form = document.createElement('form');
-      form.name = 'payForm'; form.method = 'post'; form.action = returnURL; form.acceptCharset = 'euc-kr';
+      form.name = 'payForm'; form.method = 'post'; form.action = returnURL; form.acceptCharset = 'utf-8';
       const fields: Record<string, string> = { PayMethod: 'CARD', GoodsName: goodsName, Amt: amt, MID: mid, Moid: moid, ReturnURL: returnURL, CharSet: 'utf-8', EdiDate: ediDate, SignData: signData, GoodsCl: '1', TransType: '0' };
       Object.entries(fields).forEach(([k, v]) => { const input = document.createElement('input'); input.type = 'hidden'; input.name = k; input.value = v; form.appendChild(input); });
       document.body.appendChild(form);
