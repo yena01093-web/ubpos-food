@@ -7,8 +7,9 @@ const NICE_SECRET_KEY = (process.env.NICE_MERCHANT_KEY ?? process.env.NICE_SECRE
 const APP_URL = 'https://ubpos-food.vercel.app';
 
 function jsRedirect(url: string) {
+  const script = `(function(){var u=${JSON.stringify(url)};if(window.opener&&!window.opener.closed){window.opener.location.href=u;window.close();}else{window.location.replace(u);}})();`;
   return new NextResponse(
-    `<!DOCTYPE html><html><head><meta charset="utf-8"><script>window.location.replace(${JSON.stringify(url)});</script></head><body></body></html>`,
+    `<!DOCTYPE html><html><head><meta charset="utf-8"><script>${script}</script></head><body></body></html>`,
     { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
   );
 }
