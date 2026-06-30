@@ -21,9 +21,7 @@ export async function POST(req: NextRequest) {
     if (order.payment_status === 'paid') return fail('이미 결제된 주문입니다');
 
     const mid = (process.env.NICE_MID ?? '').replace(/^﻿/, '').trim();
-    // NICE_MERCHANT_KEY: 표준결제창 SignData 전용 (상점관리자 → 상점키)
-    // NICE_SECRET_KEY 로 fallback (구 설정 호환)
-    const merchantKey = (process.env.NICE_MERCHANT_KEY ?? process.env.NICE_SECRET_KEY ?? '')
+    const merchantKey = (process.env.NICE_MERCHANT_KEY ?? '')
       .replace(/^﻿/, '').trim();
     const amt      = String(Math.round(Number(order.total_price)));
     const moid     = order.id.replace(/-/g, '').substring(0, 64);
