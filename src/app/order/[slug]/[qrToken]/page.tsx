@@ -4,13 +4,13 @@ import { useCart } from '@/components/useCart';
 import type { CategoryWithMenus, MenuWithOptions } from '@/types';
 
 const fmt = (n: number) => n.toLocaleString('ko-KR') + '원';
-const PROMO_SEARCHES = ['디럭스 치즈 치킨버거 세트', '오리지널 한마리'];
-const STORE_LEGAL = {
-  name:   '슈퍼크리스피 제천점',
-  ceo:    '박선호',
-  bizNo:  '207-11-50669',
-  address:'충북 제천시 의림대로 342 1층',
-  tel:    '043-756-8077',
+const PROMO_SEARCHES: Record<string, string[]> = {
+  'supercrispy-jc': ['디럭스 치즈 치킨버거 세트', '오리지널 한마리'],
+  'seoul-hotel':    [],
+};
+const STORE_LEGAL: Record<string, { name: string; ceo: string; bizNo: string; address: string; tel: string }> = {
+  'supercrispy-jc': { name:'슈퍼크리스피 제천점', ceo:'박선호', bizNo:'207-11-50669', address:'충북 제천시 의림대로 342 1층', tel:'043-756-8077' },
+  'seoul-hotel':    { name:'JC 호텔', ceo:'', bizNo:'', address:'충북 제천시', tel:'' },
 };
 
 // shimmer 애니메이션을 head에 주입
@@ -43,10 +43,11 @@ export default function OrderPage({ params }: { params: { slug: string; qrToken:
   const [error,        setError]        = useState('');
   const catRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
+  const promoSearches = PROMO_SEARCHES[slug] ?? [];
   const promoMenus = useMemo(() => {
     const all = categories.flatMap(c => c.menus);
-    return PROMO_SEARCHES.map(s => all.find(m => m.name.includes(s))).filter((m): m is MenuWithOptions => !!m);
-  }, [categories]);
+    return promoSearches.map(s => all.find(m => m.name.includes(s))).filter((m): m is MenuWithOptions => !!m);
+  }, [categories, promoSearches]);
 
   useEffect(() => {
     injectShimmer();
@@ -153,7 +154,7 @@ export default function OrderPage({ params }: { params: { slug: string; qrToken:
       <header style={styles.header}>
         <div style={styles.headerInner}>
           <span style={styles.storeName}>{store?.name}</span>
-          <span style={styles.tableBadge}>{isTakeout ? '📦 포장' : `🪑 ${table?.table_number}`}</span>
+          <span style={styles.tableBadge}>{isTakeout ? '📦 포장' : slug === 'seoul-hotel' ? `🏨 ${table?.table_number}호` : `🪑 ${table?.table_number}`}</span>
         </div>
         {store?.notice && <div style={styles.notice}>📢 {store.notice}</div>}
       </header>
@@ -169,7 +170,7 @@ export default function OrderPage({ params }: { params: { slug: string; qrToken:
         ))}
       </nav>
       <main style={styles.main}>
-        <BrandHero categories={categories} />
+        <BrandHero categories={categories} slug={slug} />
         {categories.map(cat => (
           <div key={cat.id} ref={el => { catRefs.current[cat.id] = el; }} style={styles.catSection}>
             <h2 style={styles.catTitle}>{cat.name} <span style={styles.catCount}>{cat.menus.length}</span></h2>
@@ -178,7 +179,7 @@ export default function OrderPage({ params }: { params: { slug: string; qrToken:
             </div>
           </div>
         ))}
-        <StoreFooter />
+        <StoreFooter slug={slug} />
         <div style={{ height: 100 }} />
       </main>
       {cart.totalCount > 0 && !showCart && <button style={styles.cartFloat} onClick={() => setShowCart(true)}>🛒 {cart.totalCount}개 · {fmt(cart.totalPrice)}</button>}
@@ -191,7 +192,17 @@ export default function OrderPage({ params }: { params: { slug: string; qrToken:
   );
 }
 
-function BrandHero({ categories }: { categories: CategoryWithMenus[] }) {
+function BrandHero({ categories, slug }: { categories: CategoryWithMenus[]; slug: string }) {
+  if (slug === 'seoul-hotel') {
+    return (
+      <div style={{ background: '#0F1E35', padding: '24px 20px 20px', overflow: 'hidden' }}>
+        <div style={{ fontSize: 36, fontWeight: 900, color: '#C8A45A', letterSpacing: 3, lineHeight: 1 }}>JC</div>
+        <div style={{ fontSize: 36, fontWeight: 900, color: '#C8A45A', letterSpacing: 3, lineHeight: 1 }}>HOTEL</div>
+        <div style={{ fontSize: 16, fontWeight: 300, color: 'rgba(255,255,255,0.8)', letterSpacing: 5, marginTop: 6 }}>ROOM SERVICE</div>
+        <div style={{ fontSize: 12, color: '#4A6A82', marginTop: 6, letterSpacing: 1 }}>24시간 룸서비스 · 주문 후 20~30분 내 배달</div>
+      </div>
+    );
+  }
   const chickenCat = categories.find(c => c.name === '치킨') ?? categories[0];
   const menus = (chickenCat?.menus ?? []).filter(m => m.image_url).slice(0, 8);
   if (!menus.length) return null;
@@ -364,13 +375,14 @@ function DoneModal({ orderId, onClose }: { orderId: string; onClose: () => void 
   );
 }
 
-function StoreFooter() {
+function StoreFooter({ slug }: { slug: string }) {
+  const info = STORE_LEGAL[slug] ?? STORE_LEGAL['supercrispy-jc'];
   return (
     <footer style={styles.footer}>
-      <div style={styles.footerName}>{STORE_LEGAL.name}</div>
-      <div style={styles.footerRow}><span>대표자 {STORE_LEGAL.ceo}</span><span style={styles.footerDot}>|</span><span>사업자등록번호 {STORE_LEGAL.bizNo}</span></div>
-      <div style={styles.footerRow}>{STORE_LEGAL.address}</div>
-      <div style={styles.footerRow}>고객센터&nbsp;<a href={`tel:${STORE_LEGAL.tel}`} style={styles.footerTel}>{STORE_LEGAL.tel}</a></div>
+      <div style={styles.footerName}>{info.name}</div>
+      {info.ceo && <div style={styles.footerRow}><span>대표자 {info.ceo}</span>{info.bizNo && <><span style={styles.footerDot}>|</span><span>사업자등록번호 {info.bizNo}</span></>}</div>}
+      {info.address && <div style={styles.footerRow}>{info.address}</div>}
+      {info.tel && <div style={styles.footerRow}>고객센터&nbsp;<a href={`tel:${info.tel}`} style={styles.footerTel}>{info.tel}</a></div>}
     </footer>
   );
 }
