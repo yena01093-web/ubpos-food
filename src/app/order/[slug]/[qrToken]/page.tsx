@@ -149,8 +149,27 @@ export default function OrderPage({ params }: { params: { slug: string; qrToken:
   if (loading) return <LoadingScreen />;
   if (error && !store) return <ErrorScreen message={error} />;
 
+  const isHotel = slug === 'seoul-hotel';
+  const themeVars = isHotel ? {
+    '--clr':      '#C8A45A',
+    '--clr-hd':   '#0F1E35',
+    '--clr-nt':   '#0A1628',
+    '--clr-on':   '#0F1E35',
+    '--clr-bg-a': 'rgba(200,164,90,0.12)',
+    '--clr-fl':   '#0F1E35',
+    '--clr-fl-txt':'#C8A45A',
+  } as React.CSSProperties : {
+    '--clr':      '#E8560A',
+    '--clr-hd':   '#E8560A',
+    '--clr-nt':   '#c44508',
+    '--clr-on':   '#fff',
+    '--clr-bg-a': '#fff3e0',
+    '--clr-fl':   '#E8560A',
+    '--clr-fl-txt':'#fff',
+  } as React.CSSProperties;
+
   return (
-    <div style={styles.root}>
+    <div style={{ ...styles.root, ...themeVars }}>
       <header style={styles.header}>
         <div style={styles.headerInner}>
           <span style={styles.storeName}>{store?.name}</span>
@@ -162,10 +181,10 @@ export default function OrderPage({ params }: { params: { slug: string; qrToken:
       <nav style={styles.catNav}>
         {categories.map(cat => (
           <button key={cat.id} onClick={() => scrollTocat(cat.id)} style={styles.catTab}>
-            <div style={{ ...styles.catTabImgBox, outline: activecat === cat.id ? '2.5px solid #E8560A' : '2.5px solid transparent', outlineOffset: '2px' }}>
-              {cat.image_url ? <img src={cat.image_url} alt={cat.name} style={styles.catTabImg} /> : <div style={{ ...styles.catTabFallback, background: activecat === cat.id ? '#E8560A' : '#f3f4f6', color: activecat === cat.id ? '#fff' : '#9ca3af' }}>{cat.name[0]}</div>}
+            <div style={{ ...styles.catTabImgBox, outline: activecat === cat.id ? '2.5px solid var(--clr)' : '2.5px solid transparent', outlineOffset: '2px' }}>
+              {cat.image_url ? <img src={cat.image_url} alt={cat.name} style={styles.catTabImg} /> : <div style={{ ...styles.catTabFallback, background: activecat === cat.id ? 'var(--clr)' : '#f3f4f6', color: activecat === cat.id ? 'var(--clr-on)' : '#9ca3af' }}>{cat.name[0]}</div>}
             </div>
-            <span style={{ ...styles.catTabText, color: activecat === cat.id ? '#E8560A' : '#6b7280', fontWeight: activecat === cat.id ? 700 : 500 }}>{cat.name}</span>
+            <span style={{ ...styles.catTabText, color: activecat === cat.id ? 'var(--clr)' : '#6b7280', fontWeight: activecat === cat.id ? 700 : 500 }}>{cat.name}</span>
           </button>
         ))}
       </nav>
@@ -405,7 +424,7 @@ function LoadingScreen() {
   return (
     <div style={{ minHeight: '100dvh', background: '#f9fafb', fontFamily: "'Pretendard', 'Apple SD Gothic Neo', sans-serif" }}>
       {/* 헤더 */}
-      <div style={{ background: '#E8560A', padding: '14px 16px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ background: 'var(--clr-hd)', padding: '14px 16px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <SkBox w={130} h={20} r={8} />
         <SkBox w={60} h={20} r={20} />
       </div>
@@ -460,11 +479,11 @@ function ErrorScreen({ message }: { message: string }) {
 
 const styles: Record<string, React.CSSProperties> = {
   root:           { minHeight: '100dvh', background: '#f9fafb', fontFamily: "'Pretendard', 'Apple SD Gothic Neo', sans-serif" },
-  header:         { background: '#E8560A', color: '#fff', padding: '14px 16px 0' },
+  header:         { background: 'var(--clr-hd)', color: '#fff', padding: '14px 16px 0' },
   headerInner:    { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   storeName:      { fontSize: 18, fontWeight: 700 },
-  tableBadge:     { background: '#E8560A', borderRadius: 20, padding: '4px 12px', fontSize: 13 },
-  notice:         { background: '#c44508', fontSize: 12, padding: '8px 0 12px', color: '#ffe4c4' },
+  tableBadge:     { background: 'var(--clr)', borderRadius: 20, padding: '4px 12px', fontSize: 13 },
+  notice:         { background: 'var(--clr-nt)', fontSize: 12, padding: '8px 0 12px', color: '#ffe4c4' },
   catNav:         { display: 'flex', gap: 0, overflowX: 'auto', background: '#fff', borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 0, zIndex: 10, padding: '8px 8px 0' },
   catTab:         { flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '0 6px 8px', background: 'none', border: 'none', cursor: 'pointer', minWidth: 60 },
   catTabActive:   {},
@@ -487,9 +506,9 @@ const styles: Record<string, React.CSSProperties> = {
   menuInfo:       { padding: '12px 10px', display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 },
   menuName:       { fontSize: 14, fontWeight: 700, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   menuDesc:       { fontSize: 12, color: '#9ca3af', lineHeight: 1.4 },
-  menuPrice:      { fontSize: 16, fontWeight: 800, color: '#E8560A', marginTop: 4 },
-  addCircle:      { width: 36, height: 36, borderRadius: '50%', background: '#E8560A', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 400, flexShrink: 0, marginRight: 14 },
-  cartFloat:      { position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', background: '#E8560A', color: '#fff', border: 'none', borderRadius: 50, padding: '16px 32px', fontSize: 16, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 24px rgba(0,0,0,0.2)', zIndex: 50, whiteSpace: 'nowrap' },
+  menuPrice:      { fontSize: 16, fontWeight: 800, color: 'var(--clr)', marginTop: 4 },
+  addCircle:      { width: 36, height: 36, borderRadius: '50%', background: 'var(--clr)', color: 'var(--clr-on)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 400, flexShrink: 0, marginRight: 14 },
+  cartFloat:      { position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', background: 'var(--clr-fl)', color: 'var(--clr-fl-txt)', border: 'none', borderRadius: 50, padding: '16px 32px', fontSize: 16, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 24px rgba(0,0,0,0.2)', zIndex: 50, whiteSpace: 'nowrap' },
   overlay:        { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'flex-end' },
   modal:          { background: '#fff', borderRadius: '20px 20px 0 0', width: '100%', maxHeight: '90vh', display: 'flex', flexDirection: 'column' },
   modalHeader:    { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 20px 0' },
@@ -500,16 +519,16 @@ const styles: Record<string, React.CSSProperties> = {
   optGroup:       { marginBottom: 20 },
   optGroupHeader: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 },
   optGroupName:   { fontSize: 15, fontWeight: 600 },
-  optBadge:       { fontSize: 11, background: '#fff3e0', color: '#E8560A', borderRadius: 6, padding: '2px 8px' },
+  optBadge:       { fontSize: 11, background: 'var(--clr-bg-a)', color: 'var(--clr)', borderRadius: 6, padding: '2px 8px' },
   optItem:        { display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', padding: '12px 14px', marginBottom: 6, border: '1.5px solid #e5e7eb', borderRadius: 10, background: '#fff', cursor: 'pointer', fontSize: 14 },
-  optItemSelected:{ border: '1.5px solid #E8560A', background: '#fff3e0' },
-  optPrice:       { color: '#E8560A', fontWeight: 600 },
+  optItemSelected:{ border: '1.5px solid var(--clr)', background: 'var(--clr-bg-a)' },
+  optPrice:       { color: 'var(--clr)', fontWeight: 600 },
   qtyRow:         { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, margin: '16px 0' },
   qtyBtn:         { width: 40, height: 40, borderRadius: '50%', border: '1.5px solid #d1d5db', background: '#fff', fontSize: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' },
   qtyBtnSm:       { width: 28, height: 28, borderRadius: '50%', border: '1.5px solid #d1d5db', background: '#fff', fontSize: 16, cursor: 'pointer' },
   qtyNum:         { fontSize: 20, fontWeight: 700, minWidth: 32, textAlign: 'center' },
   qtyNumSm:       { fontSize: 15, fontWeight: 600, minWidth: 24, textAlign: 'center' },
-  addBtn:         { width: '100%', padding: '16px', background: '#E8560A', color: '#fff', border: 'none', borderRadius: 12, fontSize: 16, fontWeight: 700, cursor: 'pointer', marginBottom: 8 },
+  addBtn:         { width: '100%', padding: '16px', background: 'var(--clr)', color: 'var(--clr-on)', border: 'none', borderRadius: 12, fontSize: 16, fontWeight: 700, cursor: 'pointer', marginBottom: 8 },
   addBtnDisabled: { background: '#9ca3af', cursor: 'not-allowed' },
   backBtn:        { width: '100%', padding: '14px', background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' },
   cartItem:       { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #f3f4f6' },
@@ -517,10 +536,10 @@ const styles: Record<string, React.CSSProperties> = {
   cartItemName:   { fontSize: 15, fontWeight: 600 },
   cartItemOpts:   { fontSize: 12, color: '#9ca3af' },
   cartItemRight:  { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 },
-  cartItemPrice:  { fontSize: 14, fontWeight: 700, color: '#E8560A' },
+  cartItemPrice:  { fontSize: 14, fontWeight: 700, color: 'var(--clr)' },
   noteInput:      { width: '100%', marginTop: 16, padding: 12, border: '1px solid #e5e7eb', borderRadius: 10, fontSize: 14, resize: 'none', boxSizing: 'border-box' },
   totalRow:       { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  totalPrice:     { fontSize: 20, fontWeight: 700, color: '#E8560A' },
+  totalPrice:     { fontSize: 20, fontWeight: 700, color: 'var(--clr)' },
   confirmItem:    { display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f3f4f6', fontSize: 14 },
   noteDisplay:    { marginTop: 12, padding: 10, background: '#f9fafb', borderRadius: 8, fontSize: 13, color: '#6b7280' },
   errorMsg:       { color: '#ef4444', fontSize: 13, margin: '8px 0', textAlign: 'center' },
