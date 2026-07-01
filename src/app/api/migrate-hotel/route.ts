@@ -8,16 +8,23 @@ export async function GET() {
   try {
     const results: string[] = [];
 
+    // 0. 기존 스토어에서 owner_id 가져오기
+    const existing = await queryOne<{ owner_id: string }>(
+      `SELECT owner_id FROM stores WHERE slug = 'supercrispy-jc'`
+    );
+    if (!existing) throw new Error('supercrispy-jc 스토어를 찾을 수 없습니다 — owner_id 확인 불가');
+    const ownerId = existing.owner_id;
+
     // 1. 스토어 생성 (없을 때만)
     let store = await queryOne<{ id: string }>(
       `SELECT id FROM stores WHERE slug = $1`, [SLUG]
     );
     if (!store) {
       const rows = await query<{ id: string }>(
-        `INSERT INTO stores (name, slug, is_open, notice, phone)
-         VALUES ('JC 호텔 룸서비스', $1, true, '24시간 룸서비스를 이용하실 수 있습니다', '043-000-0000')
+        `INSERT INTO stores (owner_id, name, slug, is_open, notice, phone)
+         VALUES ($1, 'JC 호텔 룸서비스', $2, true, '24시간 룸서비스를 이용하실 수 있습니다', '043-000-0000')
          RETURNING id`,
-        [SLUG]
+        [ownerId, SLUG]
       );
       store = rows[0];
       results.push(`✅ 스토어 생성: ${store.id}`);
