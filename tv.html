@@ -4,481 +4,214 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>JC Hotel</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=Noto+Serif+KR:wght@300;400&display=swap" rel="stylesheet">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0A1628; color: #fff; font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; width: 100vw; height: 100vh; overflow: hidden; cursor: none; }
+  .screen { position: absolute; inset: 0; display: none; opacity: 0; transition: opacity 0.8s ease; }
+  .screen.active { display: flex; opacity: 1; }
 
-  body {
-    background: #060d1f;
-    color: #fff;
-    font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
-    width: 100vw;
-    height: 100vh;
-    overflow: hidden;
-    cursor: none;
-  }
+  /* 오프닝 */
+  #screen-opening { background: #0A1628; flex-direction: column; align-items: center; justify-content: center; }
+  .hotel-logo { font-size: 72px; font-weight: 200; letter-spacing: 0.3em; color: #C8A45A; text-transform: uppercase; animation: fadeInUp 1s ease forwards; }
+  .hotel-tagline { font-size: 16px; letter-spacing: 0.5em; color: #4A5E72; margin-top: 16px; text-transform: uppercase; animation: fadeInUp 1s 0.3s ease forwards; opacity: 0; }
+  @keyframes fadeInUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
 
-  /* 화면 전환 */
-  .screen {
-    position: absolute;
-    inset: 0;
-    display: none;
-    opacity: 0;
-    transition: opacity 0.8s ease;
-  }
-  .screen.active {
-    display: flex;
-    opacity: 1;
-  }
+  /* 메인 */
+  #screen-main { flex-direction: column; }
+  .main-bg { position: absolute; inset: 0; background: #0F1E35; background-size: cover; background-position: center; transition: background-image 0.6s ease; }
+  .main-content { position: relative; z-index: 1; width: 100%; height: 100%; display: grid; grid-template-columns: 1fr 1fr; }
+  .slide-area { padding: 60px; display: flex; flex-direction: column; justify-content: center; }
+  .slide-eyebrow { font-size: 10px; letter-spacing: 0.5em; color: #C8A45A; text-transform: uppercase; margin-bottom: 24px; font-family: 'Cormorant Garamond', serif; }
+  .slide-title { font-size: 34px; font-weight: 300; line-height: 1.4; letter-spacing: 0.02em; margin-bottom: 20px; font-family: 'Noto Serif KR', 'Cormorant Garamond', serif; color: rgba(255,255,255,0.92); }
+  .slide-desc { font-size: 14px; color: #6A8099; line-height: 1.9; margin-bottom: 36px; letter-spacing: 0.03em; font-weight: 300; }
+  .slide-price { font-size: 28px; font-weight: 300; color: #C8A45A; font-family: 'Cormorant Garamond', serif; letter-spacing: 0.05em; }
+  .slide-sub { font-size: 12px; color: #4A5E72; margin-top: 8px; letter-spacing: 0.2em; }
+  .slide-image-area { position: relative; overflow: hidden; }
+  .slide-image-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 140px; background: linear-gradient(135deg, #0F1E35, #1C2E45); }
+  .slide-image-placeholder img { width: 100%; height: 100%; object-fit: cover; }
 
-  /* ===== 오프닝 화면 ===== */
-  #screen-opening {
-    background: #060d1f;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-  }
+  /* 추천 메뉴 배너 */
+  .featured-banner { position: absolute; top: 0; left: 0; right: 50%; z-index: 5; margin: 20px 60px; background: rgba(200,164,90,0.12); border: 1px solid rgba(200,164,90,0.35); border-radius: 10px; padding: 10px 16px; display: none; align-items: center; gap: 10px; backdrop-filter: blur(8px); }
+  .featured-banner.show { display: flex; }
+  .fb-label { font-size: 10px; letter-spacing: 0.3em; color: #C8A45A; text-transform: uppercase; white-space: nowrap; }
+  .fb-emoji { font-size: 22px; }
+  .fb-name { font-size: 14px; font-weight: 700; }
+  .fb-price { font-size: 13px; color: #C8A45A; margin-left: auto; white-space: nowrap; }
 
-  .hotel-logo {
-    font-size: 72px;
-    font-weight: 200;
-    letter-spacing: 0.3em;
-    color: #d4af6e;
-    text-transform: uppercase;
-    animation: fadeInUp 1s ease forwards;
-  }
-
-  .hotel-tagline {
-    font-size: 18px;
-    letter-spacing: 0.5em;
-    color: rgba(255,255,255,0.4);
-    margin-top: 16px;
-    text-transform: uppercase;
-    animation: fadeInUp 1s 0.3s ease forwards;
-    opacity: 0;
-  }
-
-  @keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  /* ===== 메인 루프 화면 ===== */
-  #screen-main {
-    flex-direction: column;
-  }
-
-  .main-bg {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, #070e20 0%, #0d1a35 50%, #070e20 100%);
-  }
-
-  .main-content {
-    position: relative;
-    z-index: 1;
-    width: 100%;
-    height: 100%;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-  }
-
-  /* 왼쪽 — 슬라이드 */
-  .slide-area {
-    padding: 60px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-  }
-
-  .slide-eyebrow {
-    font-size: 11px;
-    letter-spacing: 0.4em;
-    color: #d4af6e;
-    text-transform: uppercase;
-    margin-bottom: 20px;
-  }
-
-  .slide-title {
-    font-size: 52px;
-    font-weight: 700;
-    line-height: 1.15;
-    letter-spacing: -0.02em;
-    margin-bottom: 16px;
-  }
-
-  .slide-desc {
-    font-size: 18px;
-    color: rgba(255,255,255,0.55);
-    line-height: 1.7;
-    margin-bottom: 32px;
-  }
-
-  .slide-price {
-    font-size: 36px;
-    font-weight: 300;
-    color: #d4af6e;
-    letter-spacing: 0.05em;
-  }
-
-  .slide-distance {
-    font-size: 14px;
-    color: rgba(255,255,255,0.4);
-    margin-top: 8px;
-    letter-spacing: 0.1em;
-  }
-
-  /* 오른쪽 — 이미지 */
-  .slide-image-area {
-    position: relative;
-    overflow: hidden;
-  }
-
-  .slide-image {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    opacity: 0.7;
-  }
-
-  .slide-image-placeholder {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 120px;
-    background: linear-gradient(135deg, #0d1a35, #162040);
-  }
+  /* 주문 상태 위젯 */
+  .order-status-bar { position: fixed; top: 24px; left: 28px; z-index: 205; background: rgba(10,22,40,0.8); border: 1px solid; border-radius: 20px; padding: 8px 16px; font-size: 13px; display: none; align-items: center; gap: 8px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+  .order-status-bar.show { display: flex; }
+  .order-status-bar.s-new { border-color: rgba(200,164,90,0.5); color: #C8A45A; }
+  .order-status-bar.s-heating { border-color: rgba(239,68,68,0.5); color: #F87171; }
+  .order-status-bar.s-delivering { border-color: rgba(59,130,246,0.5); color: #60A5FA; }
+  .osb-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 
   /* 하단 바 */
-  .bottom-bar {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    padding: 24px 60px;
-    background: linear-gradient(transparent, rgba(0,0,0,0.8));
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    z-index: 10;
-  }
+  .bottom-bar { position: absolute; bottom: 0; left: 0; right: 0; padding: 20px 60px; background: linear-gradient(transparent, rgba(0,0,0,0.8)); display: flex; align-items: center; justify-content: space-between; z-index: 10; }
+  .weather-widget { font-size: 14px; color: #5A7082; }
+  .slide-dots { display: flex; gap: 8px; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: #2A4060; transition: all 0.3s; }
+  .dot.active { background: #C8A45A; width: 24px; border-radius: 3px; }
+  .bottom-right { display: flex; align-items: center; gap: 16px; }
+  /* 언어 선택 — 우측 상단 고정 */
+  .lang-fixed { position: fixed; top: 24px; right: 28px; z-index: 210; display: flex; gap: 5px; padding: 8px 10px; background: rgba(10,22,40,0.6); border: 1px solid rgba(200,164,90,0.2); border-radius: 12px; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+  .lang-btn { width: 36px; height: 32px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08); background: transparent; color: #5A7082; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.2s; letter-spacing: 0.02em; }
+  .lang-btn:hover { border-color: rgba(200,164,90,0.4); color: #9AA8B8; }
+  .lang-btn.active { background: rgba(200,164,90,0.18); color: #C8A45A; border-color: rgba(200,164,90,0.5); }
 
-  .bottom-hint {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 14px;
-    color: rgba(255,255,255,0.5);
-  }
+  /* 나가기 버튼 */
+  .exit-btn { position: fixed; bottom: 28px; left: 28px; z-index: 210; padding: 7px 16px; background: rgba(10,22,40,0.45); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; color: rgba(255,255,255,0.35); font-size: 12px; letter-spacing: 0.12em; cursor: pointer; font-family: inherit; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); transition: all 0.25s; }
+  .exit-btn:hover { background: rgba(10,22,40,0.7); border-color: rgba(255,255,255,0.25); color: rgba(255,255,255,0.7); }
+  .bottom-hint { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #5A7082; }
+  .btn-hint { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border: 1px solid #2A4060; border-radius: 6px; font-size: 12px; }
 
-  .btn-hint {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border: 1px solid rgba(255,255,255,0.3);
-    border-radius: 6px;
-    font-size: 12px;
-  }
+  /* 주문 화면 */
+  #screen-order { background: #0F1E35; flex-direction: column; }
+  .order-header { padding: 24px 60px; border-bottom: 1px solid rgba(200,164,90,0.05); display: flex; align-items: center; justify-content: space-between; }
+  .order-title { font-size: 24px; font-weight: 700; color: #C8A45A; }
+  .order-back { font-size: 13px; color: #4A5E72; letter-spacing: 0.1em; cursor: pointer; }
+  .category-tabs { display: flex; gap: 8px; padding: 16px 60px 0; }
+  .cat-tab { padding: 10px 24px; border-radius: 8px; font-size: 14px; color: #5A7082; border: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: all 0.2s; }
+  .cat-tab.focused { background: #C8A45A; color: #000; border-color: #C8A45A; font-weight: 700; }
+  .menu-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; padding: 16px 60px; flex: 1; overflow: hidden; }
+  .menu-card { background: rgba(255,255,255,0.02); border: 2px solid rgba(200,164,90,0.05); border-radius: 12px; padding: 16px; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; gap: 6px; }
+  .menu-card.focused { border-color: #C8A45A; background: rgba(200,164,90,0.08); transform: scale(1.02); }
+  .menu-card.sold { opacity: 0.4; }
+  .menu-card.is-featured { border-color: rgba(200,164,90,0.3); }
+  .featured-tag { font-size: 9px; letter-spacing: 0.2em; color: #C8A45A; text-transform: uppercase; margin-bottom: 2px; }
+  .menu-card-img { width: 100%; height: 80px; border-radius: 8px; background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; font-size: 2.5rem; overflow: hidden; }
+  .menu-card-img img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
+  .menu-name { font-size: 14px; font-weight: 600; line-height: 1.3; }
+  .menu-desc-s { font-size: 11px; color: #4A5E72; line-height: 1.4; }
+  .menu-components { font-size: 10px; color: #3A5060; line-height: 1.5; margin-top: 2px; }
+  .menu-price { font-size: 15px; color: #C8A45A; font-weight: 300; margin-top: auto; }
+  .cart-bar { padding: 16px 60px; background: rgba(200,164,90,0.08); border-top: 1px solid rgba(200,164,90,0.15); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .cart-info { font-size: 14px; color: rgba(255,255,255,0.6); }
+  .cart-total { font-size: 20px; color: #C8A45A; font-weight: 600; }
+  .cart-actions { display: flex; gap: 10px; }
+  .cart-btn { padding: 11px 28px; background: #C8A45A; color: #000; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; letter-spacing: 0.05em; border: none; font-family: inherit; }
+  .reorder-btn { padding: 11px 20px; background: rgba(200,164,90,0.1); color: #C8A45A; border-radius: 8px; font-size: 13px; cursor: pointer; border: 1px solid rgba(200,164,90,0.25); font-family: inherit; }
 
-  /* 슬라이드 인디케이터 */
-  .slide-dots {
-    display: flex;
-    gap: 8px;
-  }
+  /* 완료 */
+  #screen-complete { background: #0A1628; flex-direction: column; align-items: center; justify-content: center; gap: 20px; }
+  .complete-icon { font-size: 80px; }
+  .complete-title { font-size: 36px; font-weight: 700; color: #C8A45A; }
+  .complete-msg { font-size: 17px; color: #5A7082; text-align: center; line-height: 1.8; }
 
-  .dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.3);
-    transition: all 0.3s;
-  }
+  /* 팝업 */
+  .popup-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(8px); }
+  .popup-overlay.show { display: flex; }
+  .popup { background: #0A1628; border: 1px solid rgba(200,164,90,0.3); border-radius: 16px; padding: 44px; text-align: center; max-width: 420px; width: 90%; }
+  .popup-title { font-size: 20px; font-weight: 700; margin-bottom: 10px; }
+  .popup-desc { font-size: 14px; color: #5A7082; margin-bottom: 28px; line-height: 1.6; }
+  .popup-btns { display: flex; gap: 12px; justify-content: center; }
+  .popup-btn { padding: 12px 28px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; border: none; font-family: inherit; }
+  .popup-btn.yes { background: #C8A45A; color: #000; }
+  .popup-btn.no { background: rgba(200,164,90,0.06); color: #fff; border: 1px solid rgba(255,255,255,0.08); }
+  .popup-btn.focused { outline: 2px solid #fff; outline-offset: 2px; }
 
-  .dot.active {
-    background: #d4af6e;
-    width: 24px;
-    border-radius: 3px;
-  }
+  /* 주문 불가 오버레이 */
+  #order-blocked { position: fixed; inset: 0; z-index: 300; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 20px; background: rgba(10,22,40,0.92); backdrop-filter: blur(16px); }
+  #order-blocked.show { display: flex; }
+  .blocked-icon { font-size: 64px; }
+  .blocked-title { font-size: 26px; font-weight: 700; color: #EF4444; }
+  .blocked-msg { font-size: 15px; color: #5A7082; text-align: center; line-height: 1.8; }
 
-  /* 날씨 */
-  .weather-widget {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 14px;
-    color: rgba(255,255,255,0.5);
-  }
+  /* 주문 마감 오버레이 */
+  #order-closed { position: fixed; inset: 0; z-index: 200; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 16px; background: rgba(10,22,40,0.88); backdrop-filter: blur(12px); }
+  #order-closed.show { display: flex; }
+  .closed-icon { font-size: 56px; }
+  .closed-title { font-size: 26px; font-weight: 700; color: #EF4444; }
+  .closed-msg { font-size: 15px; color: #5A7082; text-align: center; line-height: 1.8; }
 
-  /* ===== 주문 화면 ===== */
-  #screen-order {
-    background: #070e20;
-    flex-direction: column;
-  }
-
-  .order-header {
-    padding: 32px 60px;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .order-title {
-    font-size: 28px;
-    font-weight: 700;
-    color: #d4af6e;
-    letter-spacing: 0.05em;
-  }
-
-  .order-back {
-    font-size: 13px;
-    color: rgba(255,255,255,0.4);
-    letter-spacing: 0.1em;
-  }
-
-  /* 카테고리 탭 */
-  .category-tabs {
-    display: flex;
-    gap: 4px;
-    padding: 24px 60px 0;
-  }
-
-  .cat-tab {
-    padding: 10px 24px;
-    border-radius: 8px;
-    font-size: 15px;
-    color: rgba(255,255,255,0.4);
-    border: 1px solid rgba(255,255,255,0.1);
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .cat-tab.focused {
-    background: #d4af6e;
-    color: #000;
-    border-color: #d4af6e;
-    font-weight: 700;
-  }
-
-  /* 메뉴 그리드 */
-  .menu-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
-    padding: 24px 60px;
-    flex: 1;
-    overflow: hidden;
-  }
-
-  .menu-card {
-    background: rgba(255,255,255,0.04);
-    border: 2px solid rgba(255,255,255,0.08);
-    border-radius: 12px;
-    padding: 20px;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .menu-card.focused {
-    border-color: #d4af6e;
-    background: rgba(212,175,110,0.08);
-    transform: scale(1.02);
-  }
-
-  .menu-emoji {
-    font-size: 36px;
-  }
-
-  .menu-name {
-    font-size: 16px;
-    font-weight: 600;
-    line-height: 1.3;
-  }
-
-  .menu-desc-small {
-    font-size: 12px;
-    color: rgba(255,255,255,0.4);
-    line-height: 1.5;
-  }
-
-  .menu-price {
-    font-size: 18px;
-    color: #d4af6e;
-    font-weight: 300;
-    margin-top: auto;
-  }
-
-  /* 장바구니 */
-  .cart-bar {
-    padding: 20px 60px;
-    background: rgba(212,175,110,0.1);
-    border-top: 1px solid rgba(212,175,110,0.2);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .cart-info {
-    font-size: 16px;
-    color: rgba(255,255,255,0.7);
-  }
-
-  .cart-total {
-    font-size: 24px;
-    color: #d4af6e;
-    font-weight: 600;
-  }
-
-  .cart-btn {
-    padding: 12px 32px;
-    background: #d4af6e;
-    color: #000;
-    border-radius: 8px;
-    font-size: 16px;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-  }
-
-  /* ===== 주문완료 화면 ===== */
-  #screen-complete {
-    background: #060d1f;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 24px;
-  }
-
-  .complete-icon {
-    font-size: 80px;
-  }
-
-  .complete-title {
-    font-size: 36px;
-    font-weight: 700;
-    color: #d4af6e;
-  }
-
-  .complete-msg {
-    font-size: 18px;
-    color: rgba(255,255,255,0.5);
-    text-align: center;
-    line-height: 1.7;
-  }
-
-  .complete-time {
-    font-size: 48px;
-    font-weight: 200;
-    color: #fff;
-    letter-spacing: 0.1em;
-  }
-
-  /* ===== 팝업 ===== */
-  .popup-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.7);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    z-index: 100;
-    backdrop-filter: blur(8px);
-  }
-
-  .popup-overlay.show {
-    display: flex;
-  }
-
-  .popup {
-    background: #0c1529;
-    border: 1px solid rgba(212,175,110,0.3);
-    border-radius: 16px;
-    padding: 48px;
-    text-align: center;
-    max-width: 480px;
-    width: 90%;
-  }
-
-  .popup-title {
-    font-size: 24px;
-    font-weight: 700;
-    margin-bottom: 12px;
-  }
-
-  .popup-desc {
-    font-size: 16px;
-    color: rgba(255,255,255,0.5);
-    margin-bottom: 32px;
-    line-height: 1.6;
-  }
-
-  .popup-btns {
-    display: flex;
-    gap: 12px;
-    justify-content: center;
-  }
-
-  .popup-btn {
-    padding: 14px 32px;
-    border-radius: 8px;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .popup-btn.yes {
-    background: #d4af6e;
-    color: #000;
-  }
-
-  .popup-btn.no {
-    background: rgba(255,255,255,0.1);
-    color: #fff;
-    border: 1px solid rgba(255,255,255,0.2);
-  }
-
-  .popup-btn.focused {
-    outline: 2px solid #fff;
-    outline-offset: 2px;
-  }
+  /* QR 고정 — 카트 바(~76px)와 하단 바(~68px) 위에 위치 */
+  .qr-fixed { position: fixed; bottom: 90px; right: 28px; z-index: 200; display: flex; align-items: center; gap: 14px; padding: 14px 18px 14px 16px; background: rgba(10,22,40,0.55); border: 1px solid rgba(200,164,90,0.3); border-radius: 18px; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); box-shadow: 0 12px 40px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06); }
+  .qr-fixed .qr-img { width: 90px; height: 90px; border-radius: 8px; background: #fff; padding: 6px; display: block; }
+  .qr-fixed .qr-text { display: flex; flex-direction: column; gap: 4px; }
+  .qr-fixed .qr-eyebrow { font-size: 10px; letter-spacing: 0.35em; color: #C8A45A; text-transform: uppercase; }
+  .qr-fixed .qr-title { font-size: 15px; font-weight: 700; color: #fff; line-height: 1.3; }
+  .qr-fixed .qr-sub { font-size: 11px; color: #7A8FA6; }
 </style>
 </head>
-<body>
+<body tabindex="0">
+
+<!-- QR 고정 -->
+<div class="qr-fixed">
+  <img class="qr-img" alt="주문 QR" src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=0&data=https%3A%2F%2Fubpos-food.vercel.app%2Forder%2Fsupercrispy-jc%2F4c9eb3c6-70c6-46f7-9147-c584712d5d6e">
+  <div class="qr-text">
+    <div class="qr-eyebrow" data-i18n="scanOrder">Scan to Order</div>
+    <div class="qr-title" data-i18n="mobileOrder">휴대폰으로<br>간편 주문</div>
+    <div class="qr-sub" data-i18n="scanQr">QR 스캔 후 바로 주문</div>
+  </div>
+</div>
+
+<!-- 주문 불가 (비활성 객실) -->
+<div id="order-blocked">
+  <div class="blocked-icon">🚫</div>
+  <div class="blocked-title" data-i18n="inactive">주문이 제한된 객실입니다</div>
+  <div class="blocked-msg" data-i18n="inactiveMsg">현재 이 객실은 룸서비스 주문이 비활성화되어 있습니다.<br>프런트에 문의해 주세요.</div>
+</div>
+
+<!-- 주문 마감 -->
+<div id="order-closed">
+  <div class="closed-icon">🕐</div>
+  <div class="closed-title" data-i18n="orderClosed">주문이 마감되었습니다</div>
+  <div class="closed-msg" data-i18n="orderClosedMsg">현재 주문을 받지 않습니다.<br>프런트에 문의해 주세요.</div>
+</div>
+
+<!-- 나가기 버튼 — 좌측 하단 고정 -->
+<button class="exit-btn" onclick="window.history.length > 1 ? window.history.back() : window.close()">나가기</button>
+
+<!-- 언어 선택 — 우측 상단 고정 -->
+<div class="lang-fixed">
+  <button class="lang-btn active" onclick="setLang('ko')">한</button>
+  <button class="lang-btn" onclick="setLang('en')">EN</button>
+  <button class="lang-btn" onclick="setLang('zh')">中</button>
+  <button class="lang-btn" onclick="setLang('ja')">日</button>
+</div>
+
+<!-- 주문 상태 위젯 — 좌측 상단 고정 -->
+<div class="order-status-bar" id="order-status-bar">
+  <div class="osb-dot"></div>
+  <span id="osb-text"></span>
+</div>
 
 <!-- 오프닝 -->
 <div class="screen active" id="screen-opening">
   <div class="hotel-logo">JC Hotel</div>
-  <div class="hotel-tagline">단양 · Danyang</div>
+  <div class="hotel-tagline">JECHEON · CHUNGBUK, KOREA</div>
 </div>
 
-<!-- 메인 루프 -->
+<!-- 메인 슬라이드 -->
 <div class="screen" id="screen-main">
   <div class="main-bg"></div>
+  <!-- 추천 배너 -->
+  <div class="featured-banner" id="featured-banner">
+    <span class="fb-label" data-i18n="today">오늘의 추천</span>
+    <span class="fb-emoji" id="fb-emoji">✨</span>
+    <span class="fb-name" id="fb-name"></span>
+    <span class="fb-price" id="fb-price"></span>
+  </div>
   <div class="main-content">
     <div class="slide-area">
-      <div class="slide-eyebrow" id="slide-eyebrow">룸서비스</div>
+      <div class="slide-eyebrow" id="slide-eyebrow">ROOM SERVICE</div>
       <div class="slide-title" id="slide-title">별이 빛나는 밤,<br>와인 한 잔</div>
       <div class="slide-desc" id="slide-desc">은은한 조명 아래 특별한 밤을 더 특별하게.</div>
-      <div class="slide-price" id="slide-price">₩ 35,000</div>
-      <div class="slide-distance" id="slide-distance"></div>
+      <div class="slide-price" id="slide-price">₩ 25,000</div>
+      <div class="slide-sub" id="slide-sub"></div>
     </div>
     <div class="slide-image-area">
       <div class="slide-image-placeholder" id="slide-image">🍷</div>
     </div>
   </div>
-
   <div class="bottom-bar">
-    <div class="weather-widget" id="weather">🌙 단양 18°C · 맑음</div>
+    <div class="weather-widget" id="weather">🌙 JECHEON</div>
     <div class="slide-dots" id="slide-dots"></div>
     <div class="bottom-hint">
       <span class="btn-hint">OK</span>
-      <span>주문하기</span>
+      <span data-i18n="orderNow">ORDER NOW</span>
     </div>
   </div>
 </div>
@@ -486,293 +219,525 @@
 <!-- 주문 화면 -->
 <div class="screen" id="screen-order">
   <div class="order-header">
-    <div class="order-title">📋 룸서비스 주문</div>
-    <div class="order-back">← 뒤로가기</div>
+    <div class="order-title" data-i18n="roomService">📋 ROOM SERVICE ORDER</div>
+    <div class="order-back" onclick="goMain()" data-i18n="back">← BACK</div>
   </div>
-
   <div class="category-tabs" id="category-tabs">
-    <div class="cat-tab focused">🍷 와인·맥주</div>
-    <div class="cat-tab">🧀 안주</div>
-    <div class="cat-tab">🍿 간식</div>
-    <div class="cat-tab">🥤 음료</div>
+    <div class="cat-tab focused" data-i18n="tabDrink">🍷 주류 &amp; 음료</div>
+    <div class="cat-tab" data-i18n="tabFood">🍕 5분 퀵안주</div>
+    <div class="cat-tab" data-i18n="tabPackage">📦 패키지</div>
   </div>
-
-  <div class="menu-grid" id="menu-grid">
-    <!-- Firebase에서 동적 로드 -->
-  </div>
-
+  <div class="menu-grid" id="menu-grid"></div>
   <div class="cart-bar">
-    <div class="cart-info" id="cart-info">장바구니가 비어있습니다</div>
+    <div class="cart-info" id="cart-info" data-i18n="cartEmpty">Cart is empty</div>
     <div class="cart-total" id="cart-total"></div>
-    <div class="cart-btn">주문 확정 →</div>
+    <div class="cart-actions">
+      <button class="reorder-btn" onclick="loadLastOrder()" data-i18n="reorder">⟳ 재주문</button>
+      <button class="cart-btn" onclick="submitOrder()" data-i18n="confirmOrder">CONFIRM ORDER →</button>
+    </div>
   </div>
 </div>
 
-<!-- 주문완료 -->
+<!-- 완료 -->
 <div class="screen" id="screen-complete">
   <div class="complete-icon">✅</div>
-  <div class="complete-title">주문이 접수되었습니다</div>
-  <div class="complete-msg">곧 객실로 배달해드리겠습니다<br>잠시만 기다려 주세요</div>
-  <div class="complete-time" id="complete-time">약 20분</div>
+  <div class="complete-title" data-i18n="orderCompleteTitle">Order Received</div>
+  <div class="complete-msg" data-i18n="orderCompleteMsg">We will deliver to your room shortly.<br>Thank you for your patience.</div>
 </div>
 
-<!-- 추가주문 팝업 -->
+<!-- 팝업 -->
 <div class="popup-overlay" id="popup-extra">
   <div class="popup">
-    <div class="popup-title">추가 주문 하시겠습니까?</div>
-    <div class="popup-desc">메뉴로 돌아가거나<br>TV를 시청하실 수 있습니다</div>
+    <div class="popup-title" data-i18n="wouldYouLike">Would you like to order more?</div>
+    <div class="popup-desc" data-i18n="popupDesc">Return to menu or continue watching TV.</div>
     <div class="popup-btns">
-      <div class="popup-btn yes focused" id="popup-yes">메뉴 보기</div>
-      <div class="popup-btn no" id="popup-no">TV 시청</div>
+      <div class="popup-btn yes focused" id="popup-yes" onclick="popupYes()" data-i18n="returnMenu">View Menu</div>
+      <div class="popup-btn no" id="popup-no" onclick="popupNo()" data-i18n="watchTv">Watch TV</div>
     </div>
   </div>
 </div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, collection, getDocs, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getFirestore, collection, getDocs, getDoc, addDoc, doc, updateDoc, onSnapshot, query, where, orderBy, limit, serverTimestamp, increment }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
   const firebaseConfig = {
-    apiKey: "AIzaSyCpLSUhQ7tT2lFLMESRjPe9k-xrm8bWkiA",
-    authDomain: "ubpos-tv.firebaseapp.com",
-    projectId: "ubpos-tv",
-    storageBucket: "ubpos-tv.firebasestorage.app",
-    messagingSenderId: "211927218968",
-    appId: "1:211927218968:web:d339540a90d183feabbc6d"
+    apiKey: "AIzaSyDSFNwHWreQ5py9lq8fINEMAmGj_wbEqjE",
+    authDomain: "jc-hotel-roombar-27c58.firebaseapp.com",
+    projectId: "jc-hotel-roombar-27c58",
+    storageBucket: "jc-hotel-roombar-27c58.firebasestorage.app",
+    messagingSenderId: "866392617860",
+    appId: "1:866392617860:web:33d262c60779179f55e3d1"
   };
-
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-  // ===== 상태 =====
+  document.body.focus();
+  const ROOM = new URLSearchParams(location.search).get('room') || '101';
+  const COLS = 4;
+  // CATS and catMeta are declared above (dynamic from Firebase)
+
   let currentScreen = 'opening';
   let slideIndex = 0;
   let slideTimer = null;
+  let slides = [];
+  let allMenus = { drink: [], food: [], package: [] };
+  let currentCat = 'drink';
+  let catIndex = 0;
+  let CATS = ['drink','food','package'];
+  let catMeta = { drink:{label:'주류 & 음료',emoji:'🍷'}, food:{label:'5분 퀵안주',emoji:'🍕'}, package:{label:'패키지',emoji:'📦'} };
   let menuFocusRow = 0;
   let menuFocusCol = 0;
-  let catFocus = 0;
-  let popupFocus = 0; // 0=예, 1=아니오
+  let popupFocus = 0;
   let cart = [];
-  let currentCategory = 0;
-  let slides = [];
-  let menus = { 0: [], 1: [], 2: [], 3: [] };
-  const ROOM_NUMBER = new URLSearchParams(location.search).get('room') || '101';
-  const COLS = 4;
+  let roomActive = true;
+  let orderAllowed = true;
+  let featuredMenuId = null;
+  let lang = localStorage.getItem('jcLang') || 'ko';
 
-  // ===== 샘플 슬라이드 데이터 (Firebase 연동 전) =====
-  const sampleSlides = [
-    { type: 'menu', eyebrow: '오늘의 추천', title: '별이 빛나는 밤,\n와인 한 잔', desc: '은은한 조명 아래 특별한 밤을 더 특별하게.', price: '₩ 35,000', emoji: '🍷', distance: '' },
-    { type: 'menu', eyebrow: '인기 안주', title: '치즈 플래터\n& 하몽', desc: '엄선된 유럽산 치즈와 이베리코 하몽의 조화.', price: '₩ 28,000', emoji: '🧀', distance: '' },
-    { type: 'spot', eyebrow: '단양 관광', title: '도담삼봉', desc: '남한강 위에 솟은 세 개의 봉우리. 단양 8경 중 으뜸.', price: '', emoji: '⛰️', distance: '🚗 차로 5분' },
-    { type: 'spot', eyebrow: '단양 관광', title: '고수동굴', desc: '4억 5천만 년 역사의 천연 석회암 동굴.', price: '', emoji: '🦇', distance: '🚗 차로 10분' },
-    { type: 'spot', eyebrow: '추천 코스', title: '단양 당일 코스', desc: '도담삼봉 → 마늘시장 → 구경시장 → 사인암', price: '', emoji: '🗺️', distance: '총 소요 5~6시간' },
-  ];
-
-  // ===== 샘플 메뉴 =====
-  const sampleMenus = {
-    0: [ // 와인·맥주
-      { name: '레드 와인', desc: '칠레산 카베르네 소비뇽', price: 35000, emoji: '🍷' },
-      { name: '화이트 와인', desc: '프랑스산 샤르도네', price: 35000, emoji: '🥂' },
-      { name: '단양 수제맥주', desc: '지역 브루어리 한정', price: 12000, emoji: '🍺' },
-      { name: '스파클링 와인', desc: '이탈리아 프로세코', price: 38000, emoji: '✨' },
-    ],
-    1: [ // 안주
-      { name: '치즈 플래터', desc: '고르곤졸라·브리·체다 3종', price: 28000, emoji: '🧀' },
-      { name: '하몽 & 올리브', desc: '이베리코 하몽 + 올리브 믹스', price: 24000, emoji: '🥩' },
-      { name: '과일 플래터', desc: '제철 과일 모둠', price: 18000, emoji: '🍇' },
-      { name: '견과류 믹스', desc: '프리미엄 견과류 5종', price: 14000, emoji: '🥜' },
-    ],
-    2: [ // 간식
-      { name: '컵라면', desc: '신라면 / 너구리 선택', price: 3000, emoji: '🍜' },
-      { name: '과자 세트', desc: '인기 과자 5종 모둠', price: 8000, emoji: '🍿' },
-      { name: '초콜릿', desc: '벨기에 프리미엄', price: 9000, emoji: '🍫' },
-      { name: '아이스크림', desc: '바닐라 / 딸기 선택', price: 6000, emoji: '🍦' },
-    ],
-    3: [ // 음료
-      { name: '생수 2병', desc: '제주 삼다수', price: 4000, emoji: '💧' },
-      { name: '아메리카노', desc: '핸드드립 커피', price: 5000, emoji: '☕' },
-      { name: '주스 모둠', desc: '오렌지·사과·포도', price: 6000, emoji: '🧃' },
-      { name: '탄산음료', desc: '콜라·사이다·환타', price: 3000, emoji: '🥤' },
-    ]
+  // ── i18n ─────────────────────────────────────────────
+  const T = {
+    ko: {
+      roomService:'📋 룸서비스 주문', back:'← 뒤로', tabDrink:'🍷 주류 & 음료', tabFood:'🍕 5분 퀵안주', tabPackage:'📦 패키지',
+      cartEmpty:'장바구니가 비어 있습니다', confirmOrder:'주문 확인 →', reorder:'⟳ 재주문',
+      orderCompleteTitle:'주문 접수됨', orderCompleteMsg:'곧 객실로 배달됩니다.<br>잠시만 기다려 주세요.',
+      wouldYouLike:'추가 주문하시겠어요?', popupDesc:'메뉴로 돌아가거나 TV를 계속 시청하세요.',
+      returnMenu:'메뉴 보기', watchTv:'TV 보기',
+      orderClosed:'주문이 마감되었습니다', orderClosedMsg:'현재 주문을 받지 않습니다.<br>프런트에 문의해 주세요.',
+      inactive:'주문이 제한된 객실입니다', inactiveMsg:'현재 이 객실은 룸서비스가 비활성화되어 있습니다.<br>프런트에 문의해 주세요.',
+      scanOrder:'스캔하여 주문', mobileOrder:'휴대폰으로\n간편 주문', scanQr:'QR 스캔 후 바로 주문',
+      today:'오늘의 추천', orderNow:'ORDER NOW',
+      statusNew:'접수됨', statusHeating:'준비 중', statusDelivering:'배달 중',
+      soldOut:'품절', components:'구성품',
+    },
+    en: {
+      roomService:'📋 ROOM SERVICE ORDER', back:'← BACK', tabDrink:'🍷 Drinks', tabFood:'🍕 Quick Snacks', tabPackage:'📦 Packages',
+      cartEmpty:'Cart is empty', confirmOrder:'CONFIRM ORDER →', reorder:'⟳ Reorder',
+      orderCompleteTitle:'Order Received', orderCompleteMsg:'We will deliver to your room shortly.<br>Thank you for your patience.',
+      wouldYouLike:'Would you like to order more?', popupDesc:'Return to menu or continue watching TV.',
+      returnMenu:'View Menu', watchTv:'Watch TV',
+      orderClosed:'Orders Closed', orderClosedMsg:'We are not accepting orders right now.<br>Please contact the front desk.',
+      inactive:'Service Unavailable', inactiveMsg:'Room service is currently disabled for this room.<br>Please contact the front desk.',
+      scanOrder:'Scan to Order', mobileOrder:'Order via\nMobile', scanQr:'Scan QR to order instantly',
+      today:"Today's Special", orderNow:'ORDER NOW',
+      statusNew:'Received', statusHeating:'Preparing', statusDelivering:'On the Way',
+      soldOut:'Sold Out', components:'Includes',
+    },
+    zh: {
+      roomService:'📋 客房服务点餐', back:'← 返回', tabDrink:'🍷 酒水饮料', tabFood:'🍕 快速小食', tabPackage:'📦 套餐组合',
+      cartEmpty:'购物车为空', confirmOrder:'确认订单 →', reorder:'⟳ 重新点餐',
+      orderCompleteTitle:'订单已接收', orderCompleteMsg:'我们将尽快送达您的房间。<br>感谢您的耐心等候。',
+      wouldYouLike:'是否继续点餐？', popupDesc:'返回菜单或继续看电视。',
+      returnMenu:'查看菜单', watchTv:'看电视',
+      orderClosed:'暂停接单', orderClosedMsg:'目前暂不接受订单。<br>请联系前台。',
+      inactive:'本房间暂停服务', inactiveMsg:'本房间客房服务已停用。<br>请联系前台。',
+      scanOrder:'扫码点餐', mobileOrder:'手机便捷\n点餐', scanQr:'扫描二维码立即点餐',
+      today:'今日推荐', orderNow:'立即点餐',
+      statusNew:'已接收', statusHeating:'准备中', statusDelivering:'配送中',
+      soldOut:'售罄', components:'套餐内容',
+    },
+    ja: {
+      roomService:'📋 ルームサービス注文', back:'← 戻る', tabDrink:'🍷 お酒・ドリンク', tabFood:'🍕 おつまみ', tabPackage:'📦 セットメニュー',
+      cartEmpty:'カートが空です', confirmOrder:'注文を確認 →', reorder:'⟳ 再注文',
+      orderCompleteTitle:'注文受付済み', orderCompleteMsg:'まもなくお部屋までお届けします。<br>しばらくお待ちください。',
+      wouldYouLike:'追加注文しますか？', popupDesc:'メニューに戻るかテレビを視聴してください。',
+      returnMenu:'メニューを見る', watchTv:'テレビを見る',
+      orderClosed:'注文受付終了', orderClosedMsg:'ただいまの時間帯は注文を受け付けていません。<br>フロントにお問い合わせください。',
+      inactive:'このお部屋はサービス停止中です', inactiveMsg:'このお部屋のルームサービスは現在無効です。<br>フロントにお問い合わせください。',
+      scanOrder:'スキャンして注文', mobileOrder:'スマホで\n簡単注文', scanQr:'QRコードをスキャンして注文',
+      today:'本日のおすすめ', orderNow:'注文する',
+      statusNew:'受付済み', statusHeating:'準備中', statusDelivering:'配達中',
+      soldOut:'売り切れ', components:'セット内容',
+    }
   };
-  menus = sampleMenus;
-  slides = sampleSlides;
 
-  // ===== 화면 전환 =====
-  function showScreen(id) {
-    document.querySelectorAll('.screen').forEach(s => {
-      s.classList.remove('active');
-      s.style.display = 'none';
+  function t(key) { return T[lang]?.[key] ?? T.ko[key] ?? key; }
+
+  function applyLang() {
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.dataset.i18n;
+      if (key) el.innerHTML = t(key);
     });
-    const el = document.getElementById('screen-' + id);
-    el.style.display = 'flex';
-    setTimeout(() => el.classList.add('active'), 10);
-    currentScreen = id;
+    document.querySelectorAll('.lang-btn').forEach((btn,i) => {
+      btn.classList.toggle('active', ['ko','en','zh','ja'][i] === lang);
+    });
+    // category tabs
+    renderCats();
+    // cart
+    updateCart();
   }
 
-  // ===== 오프닝 =====
-  setTimeout(() => {
-    showScreen('main');
-    startSlideShow();
-    loadWeather();
-    renderDots();
-    renderSlide(0);
+  window.setLang = (l) => {
+    lang = l;
+    localStorage.setItem('jcLang', l);
+    applyLang();
+  };
+
+  // ── Default slides ────────────────────────────────────
+  const defaultSlides = [
+    { eyebrow:"ROOM SERVICE", title:"별이 빛나는 밤,\n와인 한 잔", desc:"은은한 조명 아래 특별한 밤을 더 특별하게.", price:"₩ 25,000", emoji:"🍷", sub:"" },
+    { eyebrow:"ROOM SERVICE", title:"제천 수제\n크래프트 맥주", desc:"지역 브루어리에서 직접 만든 신선한 맥주.", price:"₩ 8,000", emoji:"🍺", sub:"" },
+    { eyebrow:"JECHEON TOUR", title:"Cheongpung Lake", desc:"충북의 아름다운 호수. 유람선과 케이블카 운영.", price:"", emoji:"🏞️", sub:"🚗 10 min drive" },
+    { eyebrow:"JECHEON TOUR", title:"Uirimji Reservoir", desc:"삼한시대에 만들어진 우리나라 최초의 저수지.", price:"", emoji:"🌿", sub:"🚗 5 min drive" },
+  ];
+
+  // ── Load data ─────────────────────────────────────────
+  async function loadData() {
+    try {
+      const menuSnap = await getDocs(collection(db,'menu_slots'));
+      if (!menuSnap.empty) {
+        allMenus = {};
+        CATS.forEach(cat => { allMenus[cat] = []; });
+        menuSnap.forEach(d => {
+          const m = { id: d.id, ...d.data() };
+          if (m.active !== false && m.name && allMenus[m.category] !== undefined) {
+            allMenus[m.category].push(m);
+          }
+        });
+        CATS.forEach(cat => { allMenus[cat].sort((a,b) => (a.slotId||0) - (b.slotId||0)); });
+      }
+      const spotSnap = await getDocs(query(collection(db,'spots'), orderBy('createdAt','asc')));
+      const menuSlides = [...allMenus.drink, ...allMenus.food].slice(0,2).map(m => ({
+        eyebrow:"ROOM SERVICE", title:m.name, desc:m.desc, price:m.price?`₩ ${Number(m.price).toLocaleString()}`:"", emoji:m.emoji||'🍽️', sub:"", imageUrl:m.imageUrl||''
+      }));
+      const spotSlotSnap = await getDocs(collection(db,'spot_slots'));
+      const fixedSpotSlides = spotSlotSnap.docs
+        .map(d => d.data())
+        .filter(s => s.active !== false && s.name)
+        .sort((a,b) => a.slotId - b.slotId)
+        .map(s => ({ eyebrow:"JECHEON TOUR", title:s.name, desc:'', price:'', emoji:'📍', sub:'', imageUrl:s.imageUrl||'' }));
+
+      const spotSlides = fixedSpotSlides.length ? fixedSpotSlides
+        : spotSnap.empty
+          ? defaultSlides.filter(s => s.eyebrow.includes('TOUR'))
+          : spotSnap.docs.map(d => { const s=d.data(); return { eyebrow:"JECHEON TOUR", title:s.name, desc:s.desc, price:"", emoji:s.emoji||'📍', sub:s.distance||'', imageUrl:s.imageUrl||'' }; });
+
+      const catEyebrow = { '추천안주':'RECOMMENDED', '주류':'ROOM SERVICE', '관광지':'JECHEON TOUR', '기타':'SPECIAL' };
+      const slideSnap = await getDocs(collection(db,'slides'));
+      const fixedSlides = slideSnap.docs
+        .map(d => d.data())
+        .filter(s => s.active !== false && s.name)
+        .sort((a,b) => a.slotId - b.slotId)
+        .map(s => ({ eyebrow: catEyebrow[s.category]||'SPECIAL', title:s.name, desc:'', price:'', emoji:'✨', sub:'', imageUrl:s.imageUrl||'' }));
+
+      slides = [...fixedSlides, ...menuSlides, ...spotSlides];
+      if (!slides.length) slides = defaultSlides;
+    } catch(e) {
+      slides = defaultSlides;
+    }
+    renderSlide(0); renderDots();
+  }
+
+  async function loadGlobalSettings() {
+    try {
+      const snap = await getDoc(doc(db,'settings','global'));
+      if (!snap.exists()) return;
+      const d = snap.data();
+      if (d.orderOpen === false) { orderAllowed = false; }
+      if (d.nightEnabled && isNightRestricted(d.nightStart, d.nightEnd)) { orderAllowed = false; }
+      applyBgImage(d.bgImageUrl || '');
+    } catch(e) {}
+  }
+
+  function applyBgImage(url) {
+    const el = document.querySelector('.main-bg');
+    if (url) {
+      el.style.backgroundImage = `linear-gradient(rgba(10,22,40,0.45), rgba(10,22,40,0.45)), url(${url})`;
+    } else {
+      el.style.backgroundImage = '';
+      el.style.background = '#0F1E35';
+    }
+  }
+
+  async function loadCatSettings() {
+    try {
+      const snap = await getDoc(doc(db,'settings','categories'));
+      if (snap.exists()) {
+        const d = snap.data();
+        if (d.order?.length) CATS = d.order;
+        if (d.meta) catMeta = {...catMeta, ...d.meta};
+      }
+    } catch(e) {}
+    renderCatTabs();
+  }
+
+  function renderCatTabs() {
+    const container = document.getElementById('category-tabs');
+    if (!container) return;
+    container.innerHTML = CATS.map((key,i) => {
+      const m = catMeta[key] || {label:key, emoji:'📁'};
+      return `<div class="cat-tab ${i===0?'focused':''}" data-cat="${key}">${m.emoji} ${m.label}</div>`;
+    }).join('');
+    container.querySelectorAll('.cat-tab').forEach((tab,i) => {
+      tab.addEventListener('click', () => {
+        catIndex=i; currentCat=CATS[i]||CATS[0];
+        menuFocusRow=0; menuFocusCol=0;
+        renderCats(); renderMenuGrid();
+      });
+    });
+  }
+
+  async function loadFeatured() {
+    try {
+      const snap = await getDoc(doc(db,'settings','featured'));
+      if (!snap.exists() || !snap.data().menuId) { document.getElementById('featured-banner').classList.remove('show'); return; }
+      const d = snap.data();
+      featuredMenuId = d.menuId;
+      document.getElementById('fb-emoji').textContent = d.menuEmoji || '✨';
+      document.getElementById('fb-name').textContent = d.menuName || '';
+      document.getElementById('fb-price').textContent = d.menuPrice ? `₩${Number(d.menuPrice).toLocaleString()}` : '';
+      document.getElementById('featured-banner').classList.add('show');
+    } catch(e) {}
+  }
+
+  function isNightRestricted(start, end) {
+    if (!start || !end) return false;
+    const now = new Date();
+    const nowMin = now.getHours()*60+now.getMinutes();
+    const [sh,sm] = start.split(':').map(Number); const startMin = sh*60+sm;
+    const [eh,em] = end.split(':').map(Number);   const endMin = eh*60+em;
+    return startMin <= endMin ? (nowMin>=startMin && nowMin<endMin) : (nowMin>=startMin || nowMin<endMin);
+  }
+
+  async function checkRoomStatus() {
+    try {
+      const snap = await getDoc(doc(db,'rooms',ROOM));
+      if (snap.exists()) roomActive = snap.data().active !== false;
+    } catch(e) {}
+    if (!roomActive) document.getElementById('order-blocked').classList.add('show');
+  }
+
+  // ── Order status real-time ────────────────────────────
+  function startOrderStatusListener() {
+    const q = query(collection(db,'orders'), where('room','==',ROOM), orderBy('createdAt','desc'), limit(1));
+    onSnapshot(q, snap => {
+      const bar = document.getElementById('order-status-bar');
+      if (snap.empty) { bar.classList.remove('show'); return; }
+      const o = snap.docs[0].data();
+      if (o.status === 'done') { bar.classList.remove('show'); return; }
+      const statusMap = { new: t('statusNew'), heating: t('statusHeating'), delivering: t('statusDelivering') };
+      document.getElementById('osb-text').textContent = statusMap[o.status] || t('statusNew');
+      bar.className = `order-status-bar show s-${o.status||'new'}`;
+    });
+  }
+
+  // ── Screen transitions ────────────────────────────────
+  function showScreen(id) {
+    currentScreen = id;
+    document.body.focus();
+    document.querySelectorAll('.screen').forEach(s => { s.classList.remove('active'); s.style.display='none'; });
+    const el = document.getElementById('screen-'+id);
+    el.style.display='flex';
+    setTimeout(() => el.classList.add('active'), 10);
+  }
+
+  setTimeout(async () => {
+    await Promise.all([loadData(), loadGlobalSettings(), checkRoomStatus(), loadFeatured(), loadCatSettings()]);
+    showScreen('main'); startSlide(); loadWeather();
+    startOrderStatusListener();
+    applyLang();
   }, 2500);
 
-  // ===== 슬라이드쇼 =====
-  function startSlideShow() {
-    slideTimer = setInterval(() => {
-      slideIndex = (slideIndex + 1) % slides.length;
-      renderSlide(slideIndex);
-    }, 5000);
+  // ── Slide ─────────────────────────────────────────────
+  function startSlide() {
+    clearInterval(slideTimer);
+    slideTimer = setInterval(() => { slideIndex=(slideIndex+1)%slides.length; renderSlide(slideIndex); }, 5000);
   }
 
   function renderSlide(i) {
-    const s = slides[i];
+    const s = slides[i] || defaultSlides[0];
     document.getElementById('slide-eyebrow').textContent = s.eyebrow;
-    document.getElementById('slide-title').innerHTML = s.title.replace('\n', '<br>');
+    document.getElementById('slide-title').innerHTML = s.title.replace('\n','<br>');
     document.getElementById('slide-desc').textContent = s.desc;
     document.getElementById('slide-price').textContent = s.price;
-    document.getElementById('slide-distance').textContent = s.distance;
-    document.getElementById('slide-image').textContent = s.emoji;
+    document.getElementById('slide-sub').textContent = s.sub||'';
+    const imgEl = document.getElementById('slide-image');
+    if (s.imageUrl) imgEl.innerHTML = `<img src="${s.imageUrl}" onerror="this.parentElement.innerHTML='${s.emoji}'">`;
+    else imgEl.textContent = s.emoji;
     renderDots();
   }
 
   function renderDots() {
-    const el = document.getElementById('slide-dots');
-    el.innerHTML = slides.map((_, i) => `<div class="dot ${i === slideIndex ? 'active' : ''}"></div>`).join('');
+    document.getElementById('slide-dots').innerHTML = slides.map((_,i) =>
+      `<div class="dot ${i===slideIndex?'active':''}"></div>`).join('');
   }
 
-  // ===== 날씨 =====
+  // ── Weather ───────────────────────────────────────────
   async function loadWeather() {
     try {
-      const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=36.98&longitude=128.36&current=temperature_2m,weathercode&timezone=Asia%2FSeoul');
+      const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=37.13&longitude=128.19&current=temperature_2m,weathercode&timezone=Asia%2FSeoul');
       const data = await res.json();
       const temp = Math.round(data.current.temperature_2m);
-      const code = data.current.weathercode;
-      const icon = code === 0 ? '☀️' : code < 50 ? '⛅' : code < 70 ? '🌧️' : '❄️';
-      document.getElementById('weather').textContent = `${icon} 단양 ${temp}°C`;
+      const icon = data.current.weathercode===0?'☀️':data.current.weathercode<50?'⛅':data.current.weathercode<70?'🌧️':'❄️';
+      document.getElementById('weather').textContent = `${icon} JECHEON ${temp}°C`;
     } catch(e) {}
   }
 
-  // ===== 주문 화면 =====
+  // ── Order screen ──────────────────────────────────────
   function showOrder() {
+    if (!roomActive) {
+      const el = document.getElementById('order-blocked');
+      el.classList.add('show');
+      setTimeout(() => el.classList.remove('show'), 4000);
+      return;
+    }
+    if (!orderAllowed) {
+      const el = document.getElementById('order-closed');
+      el.classList.add('show');
+      setTimeout(() => el.classList.remove('show'), 4000);
+      return;
+    }
     clearInterval(slideTimer);
+    catIndex=0; currentCat='drink';
+    menuFocusRow=0; menuFocusCol=0;
     showScreen('order');
-    catFocus = 0;
-    menuFocusRow = 0;
-    menuFocusCol = 0;
-    renderCategories();
-    renderMenus();
+    renderCats(); renderMenuGrid();
   }
 
-  function renderCategories() {
+  function renderCats() {
     const tabs = document.querySelectorAll('.cat-tab');
-    tabs.forEach((t, i) => t.classList.toggle('focused', i === catFocus));
-  }
-
-  function renderMenus() {
-    const grid = document.getElementById('menu-grid');
-    const items = menus[currentCategory] || [];
-    grid.innerHTML = items.map((m, i) => `
-      <div class="menu-card" data-idx="${i}">
-        <div class="menu-emoji">${m.emoji}</div>
-        <div class="menu-name">${m.name}</div>
-        <div class="menu-desc-small">${m.desc}</div>
-        <div class="menu-price">₩ ${m.price.toLocaleString()}</div>
-      </div>
-    `).join('');
-    updateMenuFocus();
-    updateCart();
-  }
-
-  function updateMenuFocus() {
-    const cards = document.querySelectorAll('.menu-card');
-    cards.forEach((c, i) => {
-      const row = Math.floor(i / COLS);
-      const col = i % COLS;
-      c.classList.toggle('focused', row === menuFocusRow && col === menuFocusCol);
+    tabs.forEach((tab,i) => {
+      tab.classList.toggle('focused', i===catIndex);
+      const m = catMeta[CATS[i]] || {label:CATS[i], emoji:'📁'};
+      tab.innerHTML = `${m.emoji} ${m.label}`;
     });
   }
 
-  function updateCart() {
-    const total = cart.reduce((s, i) => s + i.price, 0);
-    document.getElementById('cart-info').textContent = cart.length > 0 ? `${cart.length}개 선택됨` : '장바구니가 비어있습니다';
-    document.getElementById('cart-total').textContent = total > 0 ? `₩ ${total.toLocaleString()}` : '';
+  function renderMenuGrid() {
+    const items = allMenus[currentCat] || [];
+    const grid = document.getElementById('menu-grid');
+    grid.innerHTML = items.map((m,i) => {
+      const isFeat = m.id === featuredMenuId;
+      const imgEl = m.imageUrl
+        ? `<div class="menu-card-img"><img src="${m.imageUrl}" onerror="this.parentElement.innerHTML='${m.emoji||'🍽️'}'"></div>`
+        : `<div class="menu-card-img">${m.emoji||'🍽️'}</div>`;
+      const compHtml = (m.components||[]).length
+        ? `<div class="menu-components">${t('components')}: ${m.components.join(' · ')}</div>`
+        : '';
+      return `<div class="menu-card ${m.soldOut?'sold':''} ${isFeat?'is-featured':''}" data-idx="${i}">
+        ${isFeat?`<div class="featured-tag">✨ ${t('today')}</div>`:''}
+        ${imgEl}
+        <div class="menu-name">${m.name}</div>
+        <div class="menu-desc-s">${m.desc||''}</div>
+        ${compHtml}
+        <div class="menu-price">${m.soldOut?t('soldOut'):'₩ '+Number(m.price).toLocaleString()}</div>
+      </div>`;
+    }).join('');
+    grid.querySelectorAll('.menu-card').forEach((card,i) => {
+      card.addEventListener('click', () => { menuFocusRow=Math.floor(i/COLS); menuFocusCol=i%COLS; updateFocus(); });
+    });
+    updateFocus(); updateCart();
   }
 
-  // ===== 주문 완료 =====
-  async function submitOrder() {
-    if (cart.length === 0) return;
+  // cat-tab click listeners are set up in renderCatTabs()
+
+  function updateFocus() {
+    document.querySelectorAll('.menu-card').forEach((c,i) =>
+      c.classList.toggle('focused', Math.floor(i/COLS)===menuFocusRow && i%COLS===menuFocusCol));
+  }
+
+  function updateCart() {
+    const total = cart.reduce((s,i)=>s+i.price,0);
+    const infoEl = document.getElementById('cart-info');
+    const totalEl = document.getElementById('cart-total');
+    if (infoEl) infoEl.textContent = cart.length>0 ? `${cart.length}개 선택됨` : t('cartEmpty');
+    if (totalEl) totalEl.textContent = total>0 ? `₩ ${total.toLocaleString()}` : '';
+  }
+
+  window.loadLastOrder = async () => {
     try {
-      await addDoc(collection(db, 'orders'), {
-        room: ROOM_NUMBER,
-        items: cart,
-        total: cart.reduce((s, i) => s + i.price, 0),
-        status: 'pending',
+      const q = query(collection(db,'orders'), where('room','==',ROOM), orderBy('createdAt','desc'), limit(1));
+      const snap = await getDocs(q);
+      if (snap.empty) return;
+      const o = snap.docs[0].data();
+      if (!o.items?.length) return;
+      cart = o.items.map(i => ({ name: i.name, price: i.price, desc: i.note||'' }));
+      updateCart();
+    } catch(e) {}
+  };
+
+  async function submitOrder() {
+    if (!cart.length) return;
+    if (!roomActive || !orderAllowed) { showOrder(); return; }
+    const total = cart.reduce((s,i)=>s+i.price,0);
+    try {
+      await addDoc(collection(db,'orders'), {
+        room: ROOM,
+        roomRef: doc(db,'rooms',ROOM),
+        guestName: 'TV주문',
+        memo: '',
+        payment: 'room',
+        items: cart.map(i=>({ name:i.name, qty:1, price:i.price, note:i.desc||'' })),
+        total,
+        status: 'new',
+        lang,
         createdAt: serverTimestamp()
       });
-    } catch(e) { console.log('order saved locally'); }
+      // 누적 금액 업데이트
+      await updateDoc(doc(db,'rooms',ROOM), { totalAmount: increment(total), lastOrderAt: serverTimestamp() });
+    } catch(e) {}
     cart = [];
     showScreen('complete');
-    setTimeout(() => {
-      showScreen('main');
-      startSlideShow();
-    }, 8000);
+    setTimeout(() => { showScreen('main'); startSlide(); }, 8000);
   }
 
-  // ===== 키보드 (리모콘 시뮬레이션) =====
-  document.addEventListener('keydown', (e) => {
-    // 팝업
-    if (document.getElementById('popup-extra').classList.contains('show')) {
-      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-        popupFocus = popupFocus === 0 ? 1 : 0;
-        document.getElementById('popup-yes').classList.toggle('focused', popupFocus === 0);
-        document.getElementById('popup-no').classList.toggle('focused', popupFocus === 1);
-      }
-      if (e.key === 'Enter') {
-        document.getElementById('popup-extra').classList.remove('show');
-        if (popupFocus === 0) showOrder();
-        else { showScreen('main'); startSlideShow(); }
-      }
+  window.goMain = () => { showScreen('main'); startSlide(); };
+  window.submitOrder = submitOrder;
+  window.popupYes = () => { document.getElementById('popup-extra').classList.remove('show'); showOrder(); };
+  window.popupNo = () => { document.getElementById('popup-extra').classList.remove('show'); showScreen('main'); startSlide(); };
+
+  // ── Keyboard ──────────────────────────────────────────
+  window.addEventListener('keydown', (e) => {
+    if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Enter',' '].includes(e.key)) e.preventDefault();
+
+    // 언어 전환: L키
+    if (e.key === 'l' || e.key === 'L') {
+      const langs = ['ko','en','zh','ja'];
+      setLang(langs[(langs.indexOf(lang)+1)%langs.length]);
       return;
     }
 
-    if (currentScreen === 'main') {
-      if (e.key === 'Enter') showOrder();
-      if (e.key === 'ArrowLeft') { slideIndex = (slideIndex - 1 + slides.length) % slides.length; renderSlide(slideIndex); }
-      if (e.key === 'ArrowRight') { slideIndex = (slideIndex + 1) % slides.length; renderSlide(slideIndex); }
+    if (document.getElementById('popup-extra').classList.contains('show')) {
+      if (e.key==='ArrowLeft'||e.key==='ArrowRight') {
+        popupFocus = popupFocus===0?1:0;
+        document.getElementById('popup-yes').classList.toggle('focused', popupFocus===0);
+        document.getElementById('popup-no').classList.toggle('focused', popupFocus===1);
+      }
+      if (e.key==='Enter') { popupFocus===0 ? popupYes() : popupNo(); }
+      return;
     }
 
-    if (currentScreen === 'order') {
-      const items = menus[currentCategory] || [];
-      const rows = Math.ceil(items.length / COLS);
-
-      if (e.key === 'ArrowLeft') {
-        if (menuFocusCol > 0) menuFocusCol--;
-        else { catFocus = Math.max(0, catFocus - 1); currentCategory = catFocus; renderMenus(); renderCategories(); return; }
-        updateMenuFocus();
-      }
-      if (e.key === 'ArrowRight') {
-        if (menuFocusCol < COLS - 1 && menuFocusRow * COLS + menuFocusCol + 1 < items.length) menuFocusCol++;
-        else { catFocus = Math.min(3, catFocus + 1); currentCategory = catFocus; renderMenus(); renderCategories(); return; }
-        updateMenuFocus();
-      }
-      if (e.key === 'ArrowUp') { menuFocusRow = Math.max(0, menuFocusRow - 1); updateMenuFocus(); }
-      if (e.key === 'ArrowDown') { menuFocusRow = Math.min(rows - 1, menuFocusRow + 1); updateMenuFocus(); }
-      if (e.key === 'Enter') {
-        const idx = menuFocusRow * COLS + menuFocusCol;
-        if (idx < items.length) { cart.push(items[idx]); updateCart(); }
-      }
-      if (e.key === 'Backspace' || e.key === 'Escape') {
-        showScreen('main'); startSlideShow();
-      }
-      if (e.key === ' ') submitOrder();
+    if (currentScreen==='main') {
+      if (e.key==='Enter') { showOrder(); }
+      if (e.key==='ArrowLeft') { clearInterval(slideTimer); slideIndex=(slideIndex-1+slides.length)%slides.length; renderSlide(slideIndex); startSlide(); }
+      if (e.key==='ArrowRight') { clearInterval(slideTimer); slideIndex=(slideIndex+1)%slides.length; renderSlide(slideIndex); startSlide(); }
     }
 
-    if (currentScreen === 'complete') {
-      if (e.key === 'Enter') {
-        popupFocus = 0;
+    if (currentScreen==='order') {
+      const items = allMenus[currentCat]||[];
+      const rows = Math.ceil(items.length/COLS);
+      if (e.key==='ArrowLeft') { if(menuFocusCol>0){menuFocusCol--;updateFocus();} }
+      if (e.key==='ArrowRight') { if(menuFocusRow*COLS+menuFocusCol<items.length-1&&menuFocusCol<COLS-1){menuFocusCol++;updateFocus();} }
+      if (e.key==='ArrowUp') {
+        if (menuFocusRow>0) { menuFocusRow--;updateFocus(); }
+        else { catIndex=Math.max(0,catIndex-1); currentCat=CATS[catIndex]; menuFocusRow=0;menuFocusCol=0; renderCats();renderMenuGrid(); }
+      }
+      if (e.key==='ArrowDown') {
+        if (menuFocusRow<rows-1) { menuFocusRow++;updateFocus(); }
+        else { catIndex=Math.min(CATS.length-1,catIndex+1); currentCat=CATS[catIndex]; menuFocusRow=0;menuFocusCol=0; renderCats();renderMenuGrid(); }
+      }
+      if (e.key==='Enter') {
+        const idx=menuFocusRow*COLS+menuFocusCol;
+        if(idx<items.length&&!items[idx].soldOut){cart.push(items[idx]);updateCart();}
+      }
+      if (e.key===' ') submitOrder();
+      if (e.key==='Backspace'||e.key==='Escape') { showScreen('main'); startSlide(); }
+    }
+
+    if (currentScreen==='complete') {
+      if (e.key==='Enter') {
+        popupFocus=0;
         document.getElementById('popup-yes').classList.add('focused');
         document.getElementById('popup-no').classList.remove('focused');
         document.getElementById('popup-extra').classList.add('show');
@@ -780,6 +745,5 @@
     }
   });
 </script>
-
 </body>
 </html>
