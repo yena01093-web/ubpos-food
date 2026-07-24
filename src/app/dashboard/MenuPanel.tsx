@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { BAKERY_TAGS } from '@/lib/bakeryTags';
 import { CAFE_TAGS } from '@/lib/cafeTags';
 import { CAFE2_TAGS } from '@/lib/cafe2Tags';
+import { CAFE3_TAGS } from '@/lib/cafe3Tags';
 
 const fmt = (n: number) => n.toLocaleString('ko-KR') + '원';
 
@@ -395,6 +396,24 @@ export default function MenuPanel({ storeId, token }: { storeId: string; token: 
               {storeSlug === 'cafe2' && (
                 <div style={s.tagRow}>
                   {CAFE2_TAGS.map(tag => {
+                    const active = menu.tags.includes(tag.key);
+                    return (
+                      <button
+                        key={tag.key}
+                        style={{ ...s.tagChip, ...(active ? s.tagChipActive : {}) }}
+                        onClick={() => toggleMenuTag(menu, tag.key)}
+                      >
+                        {tag.icon} {tag.shortLabel}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* 태그 (카페3/미니멀 전용) - "오늘의 취향을 찾다"에서 쓰는 원두 취향 카테고리 */}
+              {storeSlug === 'cafe3' && (
+                <div style={s.tagRow}>
+                  {CAFE3_TAGS.map(tag => {
                     const active = menu.tags.includes(tag.key);
                     return (
                       <button

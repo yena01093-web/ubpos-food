@@ -9,6 +9,8 @@ import { CAFE_SLUG } from '@/lib/cafeFont';
 import CafeLanding from './CafeLanding';
 import { CAFE2_SLUG } from '@/lib/cafe2Font';
 import Cafe2Landing from './Cafe2Landing';
+import { CAFE3_SLUG } from '@/lib/cafe3Font';
+import Cafe3Landing from './Cafe3Landing';
 import type { CategoryWithMenus, MenuWithOptions } from '@/types';
 
 const fmt = (n: number) => n.toLocaleString('ko-KR') + '원';
@@ -50,12 +52,12 @@ const CONTENT = {
   },
 };
 
-// 이 랜딩 페이지는 현재 베이커리/카페/카페2 전용입니다. 그 외 매장은 아직 별도 랜딩이 없으므로
-// 기존 포장 주문 페이지로 바로 보냅니다 (베이커리·카페 매장의 동작/스타일은 그대로 유지됩니다).
+// 이 랜딩 페이지는 현재 베이커리/카페/카페2/카페3 전용입니다. 그 외 매장은 아직 별도 랜딩이 없으므로
+// 기존 포장 주문 페이지로 바로 보냅니다 (베이커리·카페·카페2 매장의 동작/스타일은 그대로 유지됩니다).
 export default function StoreLandingPage({ params }: { params: { slug: string } }) {
   const { slug } = params;
   const router = useRouter();
-  const hasLanding = slug === BAKERY_SLUG || slug === CAFE_SLUG || slug === CAFE2_SLUG;
+  const hasLanding = slug === BAKERY_SLUG || slug === CAFE_SLUG || slug === CAFE2_SLUG || slug === CAFE3_SLUG;
 
   useEffect(() => {
     if (!hasLanding) {
@@ -66,6 +68,7 @@ export default function StoreLandingPage({ params }: { params: { slug: string } 
   if (slug === BAKERY_SLUG) return <BakeryLanding />;
   if (slug === CAFE_SLUG) return <CafeLanding />;
   if (slug === CAFE2_SLUG) return <Cafe2Landing />;
+  if (slug === CAFE3_SLUG) return <Cafe3Landing />;
   return null;
 }
 
