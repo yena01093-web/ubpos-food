@@ -63,6 +63,7 @@ export interface Menu {
   is_soldout: boolean;
   is_active: boolean;
   sort_order: number;
+  tags: string[];
 }
 
 export interface OptionGroup {

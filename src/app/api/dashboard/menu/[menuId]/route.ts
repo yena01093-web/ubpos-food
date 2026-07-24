@@ -27,7 +27,7 @@ export async function PATCH(
     const fields: string[] = [];
     const values: unknown[] = [];
 
-    const allowed = ['name','description','price','image_url','is_soldout','is_active','category_id','sort_order'];
+    const allowed = ['name','description','price','image_url','is_soldout','is_active','category_id','sort_order','tags'];
     for (const key of allowed) {
       if (body[key] !== undefined) {
         values.push(body[key]);

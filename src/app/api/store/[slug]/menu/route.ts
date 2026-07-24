@@ -42,7 +42,7 @@ export async function GET(
       query<{
         menu_id: string; menu_name: string; description: string | null;
         price: number; image_url: string | null; is_soldout: boolean;
-        sort_order: number; category_id: string | null;
+        sort_order: number; category_id: string | null; tags: string[];
         og_id: string | null; og_name: string | null;
         og_required: boolean | null; og_max: number | null; og_sort: number | null;
         opt_id: string | null; opt_name: string | null;
@@ -57,6 +57,7 @@ export async function GET(
            m.is_soldout,
            m.sort_order,
            m.category_id,
+           m.tags,
            og.id          AS og_id,
            og.name        AS og_name,
            og.is_required AS og_required,
@@ -85,6 +86,7 @@ export async function GET(
           description: row.description, price: row.price,
           image_url: row.image_url, is_soldout: row.is_soldout,
           sort_order: row.sort_order, category_id: row.category_id,
+          tags: row.tags ?? [],
           option_groups: new Map(),
         });
       }

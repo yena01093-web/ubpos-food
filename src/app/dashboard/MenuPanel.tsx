@@ -1,5 +1,7 @@
 'use client';
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { BAKERY_TAGS } from '@/lib/bakeryTags';
+import { CAFE_TAGS } from '@/lib/cafeTags';
 
 const fmt = (n: number) => n.toLocaleString('ko-KR') + '원';
 
@@ -8,11 +10,13 @@ interface Menu {
   id: string; category_id: string | null; name: string;
   description: string | null; price: number; image_url: string | null;
   is_soldout: boolean; is_active: boolean; sort_order: number;
+  tags: string[];
 }
 
 export default function MenuPanel({ storeId, token }: { storeId: string; token: string }) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [menus,      setMenus]      = useState<Menu[]>([]);
+  const [storeSlug,  setStoreSlug]  = useState('');
   const [loading,    setLoading]    = useState(true);
   const [activeCat,  setActiveCat]  = useState<string>('all');
 
@@ -39,10 +43,23 @@ export default function MenuPanel({ storeId, token }: { storeId: string; token: 
     if (data.ok) {
       setCategories(data.data.categories);
       setMenus(data.data.menus);
+      setStoreSlug(data.data.storeSlug ?? '');
       if (!activeCat && data.data.categories[0]) setActiveCat(data.data.categories[0].id);
     }
     setLoading(false);
   }, [storeId, token, activeCat]);
+
+  const toggleMenuTag = async (menu: Menu, tagKey: string) => {
+    const newTags = menu.tags.includes(tagKey)
+      ? menu.tags.filter(t => t !== tagKey)
+      : [...menu.tags, tagKey];
+    setMenus(prev => prev.map(m => m.id === menu.id ? { ...m, tags: newTags } : m));
+    await fetch(`/api/dashboard/menu/${menu.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ tags: newTags }),
+    });
+  };
 
   useEffect(() => { load(); }, [load]);
 
@@ -296,44 +313,82 @@ export default function MenuPanel({ storeId, token }: { storeId: string; token: 
           const isUploading = !!uploading[menu.id];
           return (
             <div key={menu.id} style={{ ...s.menuRow, ...(menu.is_soldout ? s.menuRowSoldout : {}) }}>
-              {/* 썸네일 */}
-              <div style={s.thumbWrap}>
-                {isUploading ? (
-                  <div style={s.thumbLoading}>
-                    <span style={s.spinner} />
-                  </div>
-                ) : menu.image_url ? (
-                  <img src={menu.image_url} alt={menu.name} style={s.thumb} />
-                ) : (
-                  <div style={s.thumbEmpty}>🍽️</div>
-                )}
+              <div style={s.menuRowMain}>
+                {/* 썸네일 */}
+                <div style={s.thumbWrap}>
+                  {isUploading ? (
+                    <div style={s.thumbLoading}>
+                      <span style={s.spinner} />
+                    </div>
+                  ) : menu.image_url ? (
+                    <img src={menu.image_url} alt={menu.name} style={s.thumb} />
+                  ) : (
+                    <div style={s.thumbEmpty}>🍽️</div>
+                  )}
+                </div>
+
+                {/* 정보 */}
+                <div style={s.menuInfo}>
+                  <span style={s.menuName}>{menu.name}</span>
+                  {menu.description && <span style={s.menuDesc}>{menu.description}</span>}
+                </div>
+
+                {/* 우측 액션 */}
+                <div style={s.menuRight}>
+                  <span style={s.menuPrice}>{fmt(menu.price)}</span>
+                  <button
+                    style={s.imgBtn}
+                    onClick={() => openFilePicker(menu.id)}
+                    disabled={isUploading}
+                    title="이미지 업로드"
+                  >
+                    {isUploading ? '업로드 중…' : menu.image_url ? '🖼 변경' : '📷 이미지'}
+                  </button>
+                  <button
+                    style={{ ...s.toggleBtn, ...(menu.is_soldout ? s.soldoutOn : s.soldoutOff) }}
+                    onClick={() => toggleSoldout(menu.id, menu.is_soldout)}
+                  >
+                    {menu.is_soldout ? '품절 해제' : '품절'}
+                  </button>
+                  <button style={s.delBtn} onClick={() => deleteMenu(menu.id)}>삭제</button>
+                </div>
               </div>
 
-              {/* 정보 */}
-              <div style={s.menuInfo}>
-                <span style={s.menuName}>{menu.name}</span>
-                {menu.description && <span style={s.menuDesc}>{menu.description}</span>}
-              </div>
+              {/* 태그 (베이커리 전용) - "나에게 맞는 빵 찾기"에서 쓰는 카테고리 */}
+              {storeSlug === 'bakery' && (
+                <div style={s.tagRow}>
+                  {BAKERY_TAGS.map(tag => {
+                    const active = menu.tags.includes(tag.key);
+                    return (
+                      <button
+                        key={tag.key}
+                        style={{ ...s.tagChip, ...(active ? s.tagChipActive : {}) }}
+                        onClick={() => toggleMenuTag(menu, tag.key)}
+                      >
+                        {tag.icon} {tag.shortLabel}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
 
-              {/* 우측 액션 */}
-              <div style={s.menuRight}>
-                <span style={s.menuPrice}>{fmt(menu.price)}</span>
-                <button
-                  style={s.imgBtn}
-                  onClick={() => openFilePicker(menu.id)}
-                  disabled={isUploading}
-                  title="이미지 업로드"
-                >
-                  {isUploading ? '업로드 중…' : menu.image_url ? '🖼 변경' : '📷 이미지'}
-                </button>
-                <button
-                  style={{ ...s.toggleBtn, ...(menu.is_soldout ? s.soldoutOn : s.soldoutOff) }}
-                  onClick={() => toggleSoldout(menu.id, menu.is_soldout)}
-                >
-                  {menu.is_soldout ? '품절 해제' : '품절'}
-                </button>
-                <button style={s.delBtn} onClick={() => deleteMenu(menu.id)}>삭제</button>
-              </div>
+              {/* 태그 (카페 전용) - "지금 이 순간, 어울리는 한 잔"에서 쓰는 무드 카테고리 */}
+              {storeSlug === 'cafe' && (
+                <div style={s.tagRow}>
+                  {CAFE_TAGS.map(tag => {
+                    const active = menu.tags.includes(tag.key);
+                    return (
+                      <button
+                        key={tag.key}
+                        style={{ ...s.tagChip, ...(active ? s.tagChipActive : {}) }}
+                        onClick={() => toggleMenuTag(menu, tag.key)}
+                      >
+                        {tag.icon} {tag.shortLabel}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           );
         })}
@@ -366,8 +421,13 @@ const s: Record<string, React.CSSProperties> = {
 
   menuList:       { display:'flex', flexDirection:'column', gap:8 },
   empty:          { color:'#cbd5e1', textAlign:'center', padding:'40px 0', fontSize:14 },
-  menuRow:        { background:'#fff', borderRadius:12, padding:'12px 16px', display:'flex', alignItems:'center', gap:12, boxShadow:'0 1px 3px rgba(0,0,0,0.05)' },
+  menuRow:        { background:'#fff', borderRadius:12, padding:'12px 16px', display:'flex', flexDirection:'column', gap:10, boxShadow:'0 1px 3px rgba(0,0,0,0.05)' },
+  menuRowMain:    { display:'flex', alignItems:'center', gap:12 },
   menuRowSoldout: { opacity:0.55 },
+
+  tagRow:         { display:'flex', gap:6, flexWrap:'wrap', paddingLeft:68 },
+  tagChip:        { padding:'4px 10px', borderRadius:14, border:'1.5px solid #e2e8f0', background:'#f8fafc', fontSize:11, fontWeight:600, color:'#94a3b8', cursor:'pointer' },
+  tagChipActive:  { background:'#fdf1e0', border:'1.5px solid #d9a869', color:'#92642a' },
 
   thumbWrap:      { width:56, height:56, borderRadius:10, overflow:'hidden', flexShrink:0, background:'#f1f5f9', display:'flex', alignItems:'center', justifyContent:'center' },
   thumb:          { width:'100%', height:'100%', objectFit:'cover' },
