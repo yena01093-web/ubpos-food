@@ -4,6 +4,7 @@ import { BAKERY_TAGS } from '@/lib/bakeryTags';
 import { CAFE_TAGS } from '@/lib/cafeTags';
 import { CAFE2_TAGS } from '@/lib/cafe2Tags';
 import { CAFE3_TAGS } from '@/lib/cafe3Tags';
+import { CAFE4_TAGS } from '@/lib/cafe4Tags';
 
 const fmt = (n: number) => n.toLocaleString('ko-KR') + '원';
 
@@ -414,6 +415,24 @@ export default function MenuPanel({ storeId, token }: { storeId: string; token: 
               {storeSlug === 'cafe3' && (
                 <div style={s.tagRow}>
                   {CAFE3_TAGS.map(tag => {
+                    const active = menu.tags.includes(tag.key);
+                    return (
+                      <button
+                        key={tag.key}
+                        style={{ ...s.tagChip, ...(active ? s.tagChipActive : {}) }}
+                        onClick={() => toggleMenuTag(menu, tag.key)}
+                      >
+                        {tag.icon} {tag.shortLabel}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* 태그 (카페4/북유럽·휘게 전용) - "오늘의 안락함을 찾다"에서 쓰는 무드 카테고리 */}
+              {storeSlug === 'cafe4' && (
+                <div style={s.tagRow}>
+                  {CAFE4_TAGS.map(tag => {
                     const active = menu.tags.includes(tag.key);
                     return (
                       <button
