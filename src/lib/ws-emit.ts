@@ -11,6 +11,7 @@ export async function emit(room: string, event: string, data: unknown) {
         'x-emit-secret':   WS_SECRET,
       },
       body: JSON.stringify({ room, event, data }),
+      signal: AbortSignal.timeout(1500), // WS 서버 응답이 없어도 주문/결제가 지연되지 않도록
     });
   } catch (err) {
     // WS 서버 다운되어도 API는 정상 응답

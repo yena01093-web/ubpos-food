@@ -114,7 +114,8 @@ export async function POST(req: NextRequest) {
     });
 
     // 실시간 알림 (대시보드 + KDS)
-    await emitToStore(order.storeId, 'order:new', {
+    await Promise.all([
+      emitToStore(order.storeId, 'order:new', {
       id:           order.id,
       order_number: order.order_number,
       total_price:  order.total_price,
@@ -124,10 +125,11 @@ export async function POST(req: NextRequest) {
       items:        resolvedItemsOut.map(i => ({
         menu_name: i.menuName, quantity: i.quantity, item_total: i.itemTotal,
       })),
-    });
-    await emitToKds(order.storeId, 'order:new', {
-      id: order.id, order_number: order.order_number,
-    });
+      }),
+      emitToKds(order.storeId, 'order:new', {
+        id: order.id, order_number: order.order_number,
+      }),
+    ]);
 
     return ok({ order }, 201);
 
