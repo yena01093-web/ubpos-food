@@ -237,7 +237,7 @@ function ListMenuCard({ menu, onSelect }: { menu: MenuWithOptions; onSelect: () 
       </div>
       {menu.image_url ? (
         <div style={{ position: 'relative', width: 100, height: 100, flexShrink: 0 }}>
-          <img src={menu.image_url} alt={menu.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', borderRadius: 12, background: '#f3f4f6' }} />
+          <img loading="lazy" decoding="async" src={menu.image_url} alt={menu.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', borderRadius: 12, background: '#f3f4f6' }} />
           {!menu.is_soldout && plus({ position: 'absolute', right: -6, bottom: -6 })}
         </div>
       ) : (!menu.is_soldout && plus({ flexShrink: 0 }))}
