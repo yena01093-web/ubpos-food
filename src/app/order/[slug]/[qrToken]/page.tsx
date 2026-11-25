@@ -189,7 +189,7 @@ export default function OrderPage({ params }: { params: { slug: string; qrToken:
         {store?.notice && <div style={styles.notice}>📢 {store.notice}</div>}
       </header>
       )}
-      {!isHotel && (banners.length > 0 || promoMenus.length > 0) && <PromoBanner menus={promoMenus} banners={banners} onSelect={menu => !menu.is_soldout && setSelectedMenu(menu)} />}
+      {!isHotel && (banners.length > 0 || promoMenus.length > 0) && <div style={{ padding: '4px 16px 12px', background: '#fff' }}><div style={{ borderRadius: 18, overflow: 'hidden' }}><PromoBanner menus={promoMenus} banners={banners} onSelect={menu => !menu.is_soldout && setSelectedMenu(menu)} /></div></div>}
       <nav style={isHotel ? { ...styles.catNav, background: '#0F1E35', borderBottom: '1px solid rgba(200,164,90,0.25)', top: 0 } : styles.catNav}>
         {categories.map(cat => (
           <button key={cat.id} onClick={() => scrollTocat(cat.id)} style={isHotel ? { ...styles.catTab, background: 'transparent', borderRadius: 0, padding: '10px 14px', color: activecat === cat.id ? '#C8A45A' : 'rgba(255,255,255,0.7)', fontWeight: activecat === cat.id ? 700 : 500, borderBottom: activecat === cat.id ? '2px solid #C8A45A' : '2px solid transparent' } : { ...styles.catTab, background: activecat === cat.id ? 'var(--clr)' : '#f3f4f6', color: activecat === cat.id ? 'var(--clr-on)' : '#4b5563', fontWeight: activecat === cat.id ? 700 : 500 }}>{cat.name}</button>
@@ -204,8 +204,8 @@ export default function OrderPage({ params }: { params: { slug: string; qrToken:
                 {cat.menus.map(menu => <HotelMenuCard key={menu.id} menu={menu} onSelect={() => !menu.is_soldout && setSelectedMenu(menu)} />)}
               </div>
             ) : (
-              <div style={styles.menuGrid}>
-                {cat.menus.map(menu => <MenuCard key={menu.id} menu={menu} onSelect={() => !menu.is_soldout && setSelectedMenu(menu)} />)}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px 12px', padding: '12px 16px 8px' }}>
+                {cat.menus.map(menu => <GridMenuCard key={menu.id} menu={menu} onSelect={() => !menu.is_soldout && setSelectedMenu(menu)} />)}
               </div>
             )}
           </div>
@@ -220,6 +220,22 @@ export default function OrderPage({ params }: { params: { slug: string; qrToken:
       {orderStep === 'payment' && <PaymentModal amount={cart.totalPrice} loading={payLoading} error={error} onPay={processPayment} onBack={() => setOrderStep('confirm')} />}
       {orderStep === 'done' && <DoneModal orderId={orderId} onClose={() => setOrderStep('menu')} />}
     </div>
+  );
+}
+
+function GridMenuCard({ menu, onSelect }: { menu: MenuWithOptions; onSelect: () => void }) {
+  return (
+    <button onClick={onSelect} disabled={menu.is_soldout} style={{ display: 'flex', flexDirection: 'column', textAlign: 'left', background: 'none', border: 'none', padding: 0, cursor: 'pointer', opacity: menu.is_soldout ? 0.5 : 1, minWidth: 0 }}>
+      <div style={{ position: 'relative', width: '100%', aspectRatio: '1 / 1', borderRadius: 18, overflow: 'hidden', background: '#f3f4f6' }}>
+        {menu.image_url && <img src={menu.image_url} alt={menu.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />}
+        {menu.is_soldout
+          ? <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>품절</div>
+          : <div aria-hidden="true" style={{ position: 'absolute', right: 8, bottom: 8, width: 38, height: 38, borderRadius: '50%', background: 'var(--clr)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, boxShadow: '0 2px 8px rgba(0,0,0,0.25)' }}>＋</div>}
+      </div>
+      <span style={{ fontSize: 15, fontWeight: 700, color: '#111827', marginTop: 10, lineHeight: 1.3, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{menu.name}</span>
+      {menu.description && <span style={{ fontSize: 12, color: '#9ca3af', marginTop: 3, lineHeight: 1.35, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical' }}>{menu.description}</span>}
+      <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--clr)', marginTop: 4 }}>{fmt(menu.price)}</span>
+    </button>
   );
 }
 
@@ -518,12 +534,12 @@ function ErrorScreen({ message }: { message: string }) {
 }
 
 const styles: Record<string, React.CSSProperties> = {
-  root:           { minHeight: '100dvh', background: '#f9fafb', fontFamily: "'Pretendard', 'Apple SD Gothic Neo', sans-serif", WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' },
-  header:         { background: 'var(--clr-hd)', color: '#fff', padding: 'calc(env(safe-area-inset-top) + 12px) 16px 0' },
-  headerInner:    { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  root:           { minHeight: '100dvh', background: '#fff', fontFamily: "'Pretendard', 'Apple SD Gothic Neo', sans-serif", WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' },
+  header:         { background: '#fff', color: '#111827', padding: 'calc(env(safe-area-inset-top) + 14px) 16px 0' },
+  headerInner:    { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   storeName:      { fontSize: 18, fontWeight: 700 },
-  tableBadge:     { background: 'var(--clr)', borderRadius: 20, padding: '4px 12px', fontSize: 13 },
-  notice:         { background: 'var(--clr-nt)', fontSize: 12, padding: '8px 0 12px', color: '#ffe4c4' },
+  tableBadge:     { background: '#fff3e0', color: 'var(--clr)', fontWeight: 700, borderRadius: 20, padding: '5px 12px', fontSize: 13 },
+  notice:         { background: '#fff3e0', fontSize: 12, padding: '8px 16px', margin: '0 -16px', color: '#c44508' },
   catNav:         { display: 'flex', overflowX: 'auto', background: '#fff', borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 0, zIndex: 10, padding: '10px 12px', gap: 8 },
   catTab:         { flexShrink: 0, border: 'none', borderRadius: 20, padding: '9px 16px', fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' },
   catTabActive:   {},
@@ -531,11 +547,11 @@ const styles: Record<string, React.CSSProperties> = {
   catTabImg:      { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
   catTabFallback: { width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 700 },
   catTabText:     { fontSize: 11, lineHeight: 1.2, textAlign: 'center', whiteSpace: 'nowrap' },
-  main:           { padding: '0 0 16px', background: '#f3f4f6' },
-  catSection:     { background: '#fff', borderTop: '8px solid #f3f4f6' },
+  main:           { padding: '0 0 16px', background: '#fff' },
+  catSection:     { background: '#fff', paddingBottom: 8 },
   catBanner:      { display: 'none' },
   catBannerImg:   { width: '100%', height: '100%', objectFit: 'cover' },
-  catTitle:       { fontSize: 15, fontWeight: 800, color: '#111827', margin: 0, padding: '12px 16px 6px', background: '#fff', display: 'flex', alignItems: 'center', gap: 6 },
+  catTitle:       { fontSize: 19, fontWeight: 800, color: '#111827', margin: 0, padding: '22px 16px 4px', background: '#fff', display: 'flex', alignItems: 'center', gap: 6 },
   catCount:       { fontSize: 13, fontWeight: 500, color: '#9ca3af' },
   menuGrid:       { display: 'flex', flexDirection: 'column', gap: 0 },
   menuCard:       { display: 'flex', alignItems: 'center', background: '#fff', border: 'none', borderBottom: '1px solid #f3f4f6', overflow: 'hidden', cursor: 'pointer', textAlign: 'left', padding: 0, width: '100%' },
