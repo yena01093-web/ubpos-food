@@ -41,6 +41,7 @@ export default function OrderPage({ params }: { params: { slug: string; qrToken:
   const [requestNote,  setRequestNote]  = useState('');
   const [payLoading,   setPayLoading]   = useState(false);
   const [error,        setError]        = useState('');
+  const [welcomed,     setWelcomed]     = useState(false);
   const catRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const promoSearches = PROMO_SEARCHES[slug] ?? [];
@@ -156,8 +157,8 @@ export default function OrderPage({ params }: { params: { slug: string; qrToken:
     '--clr-nt':   '#0A1628',
     '--clr-on':   '#0F1E35',
     '--clr-bg-a': 'rgba(200,164,90,0.12)',
-    '--clr-fl':   '#0F1E35',
-    '--clr-fl-txt':'#C8A45A',
+    '--clr-fl':   '#C8A45A',
+    '--clr-fl-txt':'#0F1E35',
   } as React.CSSProperties : {
     '--clr':      '#E8560A',
     '--clr-hd':   '#E8560A',
@@ -168,8 +169,18 @@ export default function OrderPage({ params }: { params: { slug: string; qrToken:
     '--clr-fl-txt':'#fff',
   } as React.CSSProperties;
 
+  if (isHotel && !isTakeout && table && !welcomed) return <HotelWelcome room={table.table_number} onStart={() => setWelcomed(true)} />;
+
   return (
-    <div style={{ ...styles.root, ...themeVars }}>
+    <div style={{ ...styles.root, ...themeVars, ...(isHotel ? { background: '#0F1E35' } : {}) }}>
+      {isHotel ? (
+        <header style={{ background: '#0F1E35', color: '#C8A45A', textAlign: 'center', padding: 'calc(env(safe-area-inset-top) + 16px) 16px 8px' }}>
+          <div style={{ fontSize: 26, fontWeight: 300, letterSpacing: 4, lineHeight: 1 }}>JC</div>
+          <div style={{ fontSize: 11, letterSpacing: 3, opacity: 0.85, marginTop: 2 }}>JC HOTEL</div>
+          <h1 style={{ fontSize: 26, fontWeight: 700, margin: '20px 0 8px' }}>{table ? `Room ${table.table_number} 서비스` : '룸서비스'}</h1>
+          {store?.notice && <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', paddingBottom: 8 }}>{store.notice}</div>}
+        </header>
+      ) : (
       <header style={styles.header}>
         <div style={styles.headerInner}>
           <span style={styles.storeName}>{store?.name}</span>
@@ -177,31 +188,105 @@ export default function OrderPage({ params }: { params: { slug: string; qrToken:
         </div>
         {store?.notice && <div style={styles.notice}>📢 {store.notice}</div>}
       </header>
-      {(banners.length > 0 || promoMenus.length > 0) && <PromoBanner menus={promoMenus} banners={banners} onSelect={menu => !menu.is_soldout && setSelectedMenu(menu)} />}
-      <nav style={styles.catNav}>
+      )}
+      {!isHotel && (banners.length > 0 || promoMenus.length > 0) && <div style={{ padding: '4px 16px 12px', background: '#fff' }}><div style={{ borderRadius: 18, overflow: 'hidden' }}><PromoBanner menus={promoMenus} banners={banners} onSelect={menu => !menu.is_soldout && setSelectedMenu(menu)} /></div></div>}
+      <nav style={isHotel ? { ...styles.catNav, background: '#0F1E35', borderBottom: '1px solid rgba(200,164,90,0.25)', top: 0 } : styles.catNav}>
         {categories.map(cat => (
-          <button key={cat.id} onClick={() => scrollTocat(cat.id)} style={{ ...styles.catTab, background: activecat === cat.id ? 'var(--clr)' : '#f3f4f6', color: activecat === cat.id ? 'var(--clr-on)' : '#4b5563', fontWeight: activecat === cat.id ? 700 : 500 }}>{cat.name}</button>
+          <button key={cat.id} onClick={() => scrollTocat(cat.id)} style={isHotel ? { ...styles.catTab, background: 'transparent', borderRadius: 0, padding: '10px 14px', color: activecat === cat.id ? '#C8A45A' : 'rgba(255,255,255,0.7)', fontWeight: activecat === cat.id ? 700 : 500, borderBottom: activecat === cat.id ? '2px solid #C8A45A' : '2px solid transparent' } : { ...styles.catTab, background: 'transparent', borderRadius: 0, padding: '12px 14px', fontSize: 15, color: activecat === cat.id ? '#111827' : '#9ca3af', fontWeight: activecat === cat.id ? 800 : 500, borderBottom: activecat === cat.id ? '3px solid var(--clr)' : '3px solid transparent' }}>{cat.name}</button>
         ))}
       </nav>
-      <main style={styles.main}>
+      <main style={isHotel ? { ...styles.main, background: '#0F1E35' } : styles.main}>
         {categories.map(cat => (
-          <div key={cat.id} ref={el => { catRefs.current[cat.id] = el; }} style={styles.catSection}>
-            <h2 style={styles.catTitle}>{cat.name} <span style={styles.catCount}>{cat.menus.length}</span></h2>
-            <div style={styles.menuGrid}>
-              {cat.menus.map(menu => <MenuCard key={menu.id} menu={menu} onSelect={() => !menu.is_soldout && setSelectedMenu(menu)} />)}
-            </div>
+          <div key={cat.id} ref={el => { catRefs.current[cat.id] = el; }} style={isHotel ? { ...styles.catSection, background: 'transparent', borderTop: 'none' } : styles.catSection}>
+            {!isHotel && <h2 style={styles.catTitle}>{cat.name} <span style={styles.catCount}>{cat.menus.length}</span></h2>}
+            {isHotel ? (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, padding: '16px 16px 4px' }}>
+                {cat.menus.map(menu => <HotelMenuCard key={menu.id} menu={menu} onSelect={() => !menu.is_soldout && setSelectedMenu(menu)} />)}
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {cat.menus.map(menu => <ListMenuCard key={menu.id} menu={menu} onSelect={() => !menu.is_soldout && setSelectedMenu(menu)} />)}
+              </div>
+            )}
           </div>
         ))}
-        <StoreFooter slug={slug} />
+        {!isHotel && <StoreFooter slug={slug} />}
         <div style={{ height: 'calc(env(safe-area-inset-bottom) + 100px)' }} />
       </main>
-      {cart.totalCount > 0 && !showCart && <button style={styles.cartFloat} onClick={() => setShowCart(true)}>🛒 {cart.totalCount}개 · {fmt(cart.totalPrice)}</button>}
+      {cart.totalCount > 0 && !showCart && <button style={styles.cartFloat} onClick={() => setShowCart(true)}><span style={{ background: 'rgba(255,255,255,0.25)', borderRadius: '50%', width: 26, height: 26, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>{cart.totalCount}</span><span>장바구니 보기</span><span>{fmt(cart.totalPrice)}</span></button>}
       {selectedMenu && <OptionModal menu={selectedMenu} onClose={() => setSelectedMenu(null)} onAdd={(item) => { cart.addItem(item); setSelectedMenu(null); }} />}
       {showCart && <CartModal cart={cart} requestNote={requestNote} onNoteChange={setRequestNote} onClose={() => setShowCart(false)} onOrder={() => { setShowCart(false); setOrderStep('confirm'); }} />}
       {orderStep === 'confirm' && <ConfirmModal cart={cart} requestNote={requestNote} loading={payLoading} error={error} onClose={() => setOrderStep('menu')} onSubmit={submitOrder} />}
       {orderStep === 'payment' && <PaymentModal amount={cart.totalPrice} loading={payLoading} error={error} onPay={processPayment} onBack={() => setOrderStep('confirm')} />}
       {orderStep === 'done' && <DoneModal orderId={orderId} onClose={() => setOrderStep('menu')} />}
     </div>
+  );
+}
+
+function ListMenuCard({ menu, onSelect }: { menu: MenuWithOptions; onSelect: () => void }) {
+  const plus = (extra: React.CSSProperties) => (
+    <div aria-hidden="true" style={{ width: 34, height: 34, borderRadius: '50%', background: '#fff', color: 'var(--clr)', border: '1px solid #e5e7eb', boxShadow: '0 2px 6px rgba(0,0,0,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, ...extra }}>＋</div>
+  );
+  return (
+    <button onClick={onSelect} disabled={menu.is_soldout} style={{ display: 'flex', alignItems: 'flex-start', gap: 14, width: '100%', textAlign: 'left', background: '#fff', border: 'none', borderBottom: '1px solid #f3f4f6', padding: '18px 16px', cursor: 'pointer', opacity: menu.is_soldout ? 0.5 : 1 }}>
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 5 }}>
+        <span style={{ fontSize: 16, fontWeight: 700, color: '#111827', lineHeight: 1.35, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{menu.name}</span>
+        {menu.description && <span style={{ fontSize: 13, color: '#9ca3af', lineHeight: 1.4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{menu.description}</span>}
+        <span style={{ fontSize: 15, fontWeight: 700, color: '#111827', marginTop: 6 }}>{fmt(menu.price)}</span>
+        {menu.is_soldout && <span style={{ fontSize: 13, fontWeight: 700, color: '#ef4444' }}>품절</span>}
+      </div>
+      {menu.image_url ? (
+        <div style={{ position: 'relative', width: 100, height: 100, flexShrink: 0 }}>
+          <img src={menu.image_url} alt={menu.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', borderRadius: 12, background: '#f3f4f6' }} />
+          {!menu.is_soldout && plus({ position: 'absolute', right: -6, bottom: -6 })}
+        </div>
+      ) : (!menu.is_soldout && plus({ flexShrink: 0 }))}
+    </button>
+  );
+}
+
+function GridMenuCard({ menu, onSelect }: { menu: MenuWithOptions; onSelect: () => void }) {
+  return (
+    <button onClick={onSelect} disabled={menu.is_soldout} style={{ display: 'flex', flexDirection: 'column', textAlign: 'left', background: 'none', border: 'none', padding: 0, cursor: 'pointer', opacity: menu.is_soldout ? 0.5 : 1, minWidth: 0 }}>
+      <div style={{ position: 'relative', width: '100%', aspectRatio: '1 / 1', borderRadius: 18, overflow: 'hidden', background: '#f3f4f6' }}>
+        {menu.image_url && <img src={menu.image_url} alt={menu.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />}
+        {menu.is_soldout
+          ? <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>품절</div>
+          : <div aria-hidden="true" style={{ position: 'absolute', right: 8, bottom: 8, width: 38, height: 38, borderRadius: '50%', background: 'var(--clr)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, boxShadow: '0 2px 8px rgba(0,0,0,0.25)' }}>＋</div>}
+      </div>
+      <span style={{ fontSize: 15, fontWeight: 700, color: '#111827', marginTop: 10, lineHeight: 1.3, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{menu.name}</span>
+      {menu.description && <span style={{ fontSize: 12, color: '#9ca3af', marginTop: 3, lineHeight: 1.35, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical' }}>{menu.description}</span>}
+      <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--clr)', marginTop: 4 }}>{fmt(menu.price)}</span>
+    </button>
+  );
+}
+
+function HotelWelcome({ room, onStart }: { room: string; onStart: () => void }) {
+  return (
+    <div style={{ minHeight: '100dvh', background: 'linear-gradient(180deg, #0F1E35 0%, #0A1628 100%)', color: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 'calc(env(safe-area-inset-top) + 32px) 24px calc(env(safe-area-inset-bottom) + 32px)', fontFamily: "'Pretendard', 'Apple SD Gothic Neo', sans-serif", boxSizing: 'border-box' }}>
+      <div style={{ textAlign: 'center', color: '#C8A45A' }}>
+        <div style={{ fontSize: 34, fontWeight: 300, letterSpacing: 5, lineHeight: 1 }}>JC</div>
+        <div style={{ fontSize: 12, letterSpacing: 4, marginTop: 4 }}>JC HOTEL</div>
+      </div>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+        <h1 style={{ fontSize: 36, fontWeight: 800, color: '#C8A45A', lineHeight: 1.25, margin: 0 }}>환영합니다,<br />JC Hotel!</h1>
+        <p style={{ fontSize: 17, color: 'rgba(255,255,255,0.85)', marginTop: 20 }}>현재 위치: Room {room}</p>
+      </div>
+      <button onClick={onStart} style={{ width: '100%', maxWidth: 420, padding: '18px', background: '#fff', color: '#0F1E35', border: 'none', borderRadius: 40, fontSize: 18, fontWeight: 700, cursor: 'pointer' }}>객실 서비스</button>
+    </div>
+  );
+}
+
+function HotelMenuCard({ menu, onSelect }: { menu: MenuWithOptions; onSelect: () => void }) {
+  return (
+    <button onClick={onSelect} disabled={menu.is_soldout} style={{ display: 'flex', flexDirection: 'column', textAlign: 'left', background: 'none', border: 'none', padding: 0, cursor: 'pointer', opacity: menu.is_soldout ? 0.5 : 1, color: '#fff' }}>
+      <div style={{ position: 'relative', width: '100%', aspectRatio: '1 / 1', borderRadius: 14, overflow: 'hidden', background: 'rgba(255,255,255,0.08)' }}>
+        {menu.image_url && <img src={menu.image_url} alt={menu.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />}
+        {menu.is_soldout && <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>품절</div>}
+      </div>
+      <span style={{ fontSize: 16, fontWeight: 600, marginTop: 10, lineHeight: 1.3 }}>{menu.name}</span>
+      <span style={{ fontSize: 15, fontWeight: 600, color: '#C8A45A', marginTop: 4 }}>{fmt(menu.price)}</span>
+    </button>
   );
 }
 
@@ -471,24 +556,24 @@ function ErrorScreen({ message }: { message: string }) {
 }
 
 const styles: Record<string, React.CSSProperties> = {
-  root:           { minHeight: '100dvh', background: '#f9fafb', fontFamily: "'Pretendard', 'Apple SD Gothic Neo', sans-serif", WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' },
-  header:         { background: 'var(--clr-hd)', color: '#fff', padding: 'calc(env(safe-area-inset-top) + 12px) 16px 0' },
-  headerInner:    { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  storeName:      { fontSize: 18, fontWeight: 700 },
-  tableBadge:     { background: 'var(--clr)', borderRadius: 20, padding: '4px 12px', fontSize: 13 },
-  notice:         { background: 'var(--clr-nt)', fontSize: 12, padding: '8px 0 12px', color: '#ffe4c4' },
-  catNav:         { display: 'flex', overflowX: 'auto', background: '#fff', borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 0, zIndex: 10, padding: '10px 12px', gap: 8 },
+  root:           { minHeight: '100dvh', background: '#fff', fontFamily: "'Pretendard', 'Apple SD Gothic Neo', sans-serif", WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' },
+  header:         { background: '#fff', color: '#111827', padding: 'calc(env(safe-area-inset-top) + 14px) 16px 0' },
+  headerInner:    { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  storeName:      { fontSize: 21, fontWeight: 800 },
+  tableBadge:     { background: '#fff3e0', color: 'var(--clr)', fontWeight: 700, borderRadius: 20, padding: '5px 12px', fontSize: 13 },
+  notice:         { background: '#fff3e0', fontSize: 12, padding: '8px 16px', margin: '0 -16px', color: '#c44508' },
+  catNav:         { display: 'flex', overflowX: 'auto', background: '#fff', borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 0, zIndex: 10, padding: '0 8px', gap: 0 },
   catTab:         { flexShrink: 0, border: 'none', borderRadius: 20, padding: '9px 16px', fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' },
   catTabActive:   {},
   catTabImgBox:   { width: 44, height: 44, borderRadius: 12, overflow: 'hidden', flexShrink: 0 },
   catTabImg:      { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
   catTabFallback: { width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 700 },
   catTabText:     { fontSize: 11, lineHeight: 1.2, textAlign: 'center', whiteSpace: 'nowrap' },
-  main:           { padding: '0 0 16px', background: '#f3f4f6' },
+  main:           { padding: '0 0 16px', background: '#fff' },
   catSection:     { background: '#fff', borderTop: '8px solid #f3f4f6' },
   catBanner:      { display: 'none' },
   catBannerImg:   { width: '100%', height: '100%', objectFit: 'cover' },
-  catTitle:       { fontSize: 15, fontWeight: 800, color: '#111827', margin: 0, padding: '12px 16px 6px', background: '#fff', display: 'flex', alignItems: 'center', gap: 6 },
+  catTitle:       { fontSize: 18, fontWeight: 800, color: '#111827', margin: 0, padding: '20px 16px 6px', background: '#fff', display: 'flex', alignItems: 'center', gap: 6 },
   catCount:       { fontSize: 13, fontWeight: 500, color: '#9ca3af' },
   menuGrid:       { display: 'flex', flexDirection: 'column', gap: 0 },
   menuCard:       { display: 'flex', alignItems: 'center', background: '#fff', border: 'none', borderBottom: '1px solid #f3f4f6', overflow: 'hidden', cursor: 'pointer', textAlign: 'left', padding: 0, width: '100%' },
@@ -501,7 +586,7 @@ const styles: Record<string, React.CSSProperties> = {
   menuDesc:       { fontSize: 12, color: '#9ca3af', lineHeight: 1.35, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical' },
   menuPrice:      { fontSize: 15, fontWeight: 800, color: 'var(--clr)', marginTop: 2 },
   addCircle:      { width: 44, height: 44, borderRadius: '50%', background: 'var(--clr)', color: 'var(--clr-on)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 400, flexShrink: 0, marginRight: 12 },
-  cartFloat:      { position: 'fixed', bottom: 'calc(env(safe-area-inset-bottom) + 12px)', left: 12, right: 12, background: 'var(--clr-fl)', color: 'var(--clr-fl-txt)', border: 'none', borderRadius: 16, padding: '18px 20px', fontSize: 17, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 24px rgba(0,0,0,0.25)', zIndex: 50, whiteSpace: 'nowrap', textAlign: 'center' },
+  cartFloat:      { position: 'fixed', bottom: 'calc(env(safe-area-inset-bottom) + 12px)', left: 12, right: 12, background: 'var(--clr-fl)', color: 'var(--clr-fl-txt)', border: 'none', borderRadius: 16, padding: '16px 20px', fontSize: 17, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 24px rgba(0,0,0,0.25)', zIndex: 50, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
   overlay:        { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'flex-end' },
   modal:          { background: '#fff', borderRadius: '20px 20px 0 0', width: '100%', maxHeight: '90dvh', display: 'flex', flexDirection: 'column' },
   modalHeader:    { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 20px 0' },
