@@ -100,8 +100,10 @@ export async function POST(req: NextRequest) {
       [order.id, JSON.stringify({ txTid, amt }), JSON.stringify(result)]
     );
 
-    await emitToDashboard(order.store_id, 'order:status_changed', { orderId: order.id, status: 'accepted' });
-    await emitToOrder(order.id, 'order:status_changed', { status: 'accepted' });
+    await Promise.all([
+      emitToDashboard(order.store_id, 'order:status_changed', { orderId: order.id, status: 'accepted' }),
+      emitToOrder(order.id, 'order:status_changed', { status: 'accepted' }),
+    ]);
 
     return jsRedirect(`${APP_URL}/payment/success?orderId=${order.id}`);
 
