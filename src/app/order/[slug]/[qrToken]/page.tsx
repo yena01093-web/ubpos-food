@@ -199,7 +199,7 @@ export default function OrderPage({ params }: { params: { slug: string; qrToken:
           </div>
         ))}
         <StoreFooter slug={slug} />
-        <div style={{ height: 100 }} />
+        <div style={{ height: 'calc(env(safe-area-inset-bottom) + 100px)' }} />
       </main>
       {cart.totalCount > 0 && !showCart && <button style={styles.cartFloat} onClick={() => setShowCart(true)}>🛒 {cart.totalCount}개 · {fmt(cart.totalPrice)}</button>}
       {selectedMenu && <OptionModal menu={selectedMenu} onClose={() => setSelectedMenu(null)} onAdd={(item) => { cart.addItem(item); setSelectedMenu(null); }} />}
@@ -259,9 +259,9 @@ function PromoBanner({ menus, banners = [], onSelect }: { menus: MenuWithOptions
   return (
     <div style={{ overflow: 'hidden', position: 'relative', background: '#111', userSelect: 'none' }} onTouchStart={e => { touchStartX.current = e.touches[0].clientX; }} onTouchEnd={e => { if (touchStartX.current === null) return; const dx = touchStartX.current - e.changedTouches[0].clientX; if (Math.abs(dx) > 40) go(idx + (dx > 0 ? 1 : -1)); touchStartX.current = null; }}>
       <div style={{ display: 'flex', transform: `translateX(-${idx * 100}%)`, transition: 'transform 0.45s cubic-bezier(0.25,0.46,0.45,0.94)', willChange: 'transform' }}>
-        {useCustom ? banners.map(b => (<div key={b.id} style={{ flexShrink: 0, width: '100%', height: 230, position: 'relative' }}><img src={b.image_url} alt="배너" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} draggable={false} /></div>))
+        {useCustom ? banners.map(b => (<div key={b.id} style={{ flexShrink: 0, width: '100%', height: 'min(52vw, 200px)', position: 'relative' }}><img src={b.image_url} alt="배너" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} draggable={false} /></div>))
           : menus.map(menu => (
-            <div key={menu.id} style={{ flexShrink: 0, width: '100%', height: 230, position: 'relative', cursor: 'pointer' }} onClick={() => onSelect(menu)}>
+            <div key={menu.id} style={{ flexShrink: 0, width: '100%', height: 'min(52vw, 200px)', position: 'relative', cursor: 'pointer' }} onClick={() => onSelect(menu)}>
               {menu.image_url ? <img src={menu.image_url} alt={menu.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} draggable={false} /> : <div style={{ width: '100%', height: '100%', background: '#E8560A' }} />}
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(170deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.55) 55%, rgba(0,0,0,0.88) 100%)' }} />
               <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '0 18px 32px' }}>
@@ -329,7 +329,7 @@ function OptionModal({ menu, onClose, onAdd }: { menu: MenuWithOptions; onClose:
 function CartModal({ cart, requestNote, onNoteChange, onClose, onOrder }: { cart: ReturnType<typeof useCart>; requestNote: string; onNoteChange: (v: string) => void; onClose: () => void; onOrder: () => void; }) {
   return (
     <div style={styles.overlay} onClick={onClose}>
-      <div style={{ ...styles.modal, maxHeight: '80vh' }} onClick={e => e.stopPropagation()}>
+      <div style={{ ...styles.modal, maxHeight: '80dvh' }} onClick={e => e.stopPropagation()}>
         <div style={styles.modalHeader}><span style={styles.modalTitle}>장바구니</span><button style={styles.closeBtn} onClick={onClose}>✕</button></div>
         <div style={{ ...styles.modalBody, overflowY: 'auto' }}>
           {cart.items.map(item => (<div key={item.cartKey} style={styles.cartItem}><div style={styles.cartItemInfo}><span style={styles.cartItemName}>{item.name}</span>{item.options.length > 0 && <span style={styles.cartItemOpts}>{item.options.map(o => o.name).join(', ')}</span>}</div><div style={styles.cartItemRight}><div style={styles.qtyRow}><button style={styles.qtyBtnSm} onClick={() => cart.updateQty(item.cartKey, item.quantity - 1)}>－</button><span style={styles.qtyNumSm}>{item.quantity}</span><button style={styles.qtyBtnSm} onClick={() => cart.updateQty(item.cartKey, item.quantity + 1)}>＋</button></div><span style={styles.cartItemPrice}>{fmt(item.itemTotal)}</span></div></div>))}
@@ -430,7 +430,7 @@ function LoadingScreen() {
       </div>
 
       {/* 배너 */}
-      <SkBox w="100%" h={230} r={0} />
+      <SkBox w="100%" h={200} r={0} />
 
       {/* 카테고리 탭 */}
       <div style={{ display: 'flex', gap: 14, padding: '10px 12px 0', background: '#fff', borderBottom: '1px solid #e5e7eb', overflowX: 'auto' }}>
@@ -478,16 +478,16 @@ function ErrorScreen({ message }: { message: string }) {
 }
 
 const styles: Record<string, React.CSSProperties> = {
-  root:           { minHeight: '100dvh', background: '#f9fafb', fontFamily: "'Pretendard', 'Apple SD Gothic Neo', sans-serif" },
-  header:         { background: 'var(--clr-hd)', color: '#fff', padding: '14px 16px 0' },
+  root:           { minHeight: '100dvh', background: '#f9fafb', fontFamily: "'Pretendard', 'Apple SD Gothic Neo', sans-serif", WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' },
+  header:         { background: 'var(--clr-hd)', color: '#fff', padding: 'calc(env(safe-area-inset-top) + 12px) 16px 0' },
   headerInner:    { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   storeName:      { fontSize: 18, fontWeight: 700 },
   tableBadge:     { background: 'var(--clr)', borderRadius: 20, padding: '4px 12px', fontSize: 13 },
   notice:         { background: 'var(--clr-nt)', fontSize: 12, padding: '8px 0 12px', color: '#ffe4c4' },
   catNav:         { display: 'flex', gap: 0, overflowX: 'auto', background: '#fff', borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 0, zIndex: 10, padding: '8px 8px 0' },
-  catTab:         { flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '0 6px 8px', background: 'none', border: 'none', cursor: 'pointer', minWidth: 60 },
+  catTab:         { flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '0 6px 8px', background: 'none', border: 'none', cursor: 'pointer', minWidth: 56 },
   catTabActive:   {},
-  catTabImgBox:   { width: 52, height: 52, borderRadius: 12, overflow: 'hidden', flexShrink: 0 },
+  catTabImgBox:   { width: 44, height: 44, borderRadius: 12, overflow: 'hidden', flexShrink: 0 },
   catTabImg:      { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
   catTabFallback: { width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 700 },
   catTabText:     { fontSize: 11, lineHeight: 1.2, textAlign: 'center', whiteSpace: 'nowrap' },
@@ -507,25 +507,25 @@ const styles: Record<string, React.CSSProperties> = {
   menuName:       { fontSize: 14, fontWeight: 700, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   menuDesc:       { fontSize: 12, color: '#9ca3af', lineHeight: 1.4 },
   menuPrice:      { fontSize: 16, fontWeight: 800, color: 'var(--clr)', marginTop: 4 },
-  addCircle:      { width: 36, height: 36, borderRadius: '50%', background: 'var(--clr)', color: 'var(--clr-on)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 400, flexShrink: 0, marginRight: 14 },
-  cartFloat:      { position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', background: 'var(--clr-fl)', color: 'var(--clr-fl-txt)', border: 'none', borderRadius: 50, padding: '16px 32px', fontSize: 16, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 24px rgba(0,0,0,0.2)', zIndex: 50, whiteSpace: 'nowrap' },
+  addCircle:      { width: 44, height: 44, borderRadius: '50%', background: 'var(--clr)', color: 'var(--clr-on)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 400, flexShrink: 0, marginRight: 12 },
+  cartFloat:      { position: 'fixed', bottom: 'calc(env(safe-area-inset-bottom) + 12px)', left: 12, right: 12, background: 'var(--clr-fl)', color: 'var(--clr-fl-txt)', border: 'none', borderRadius: 16, padding: '18px 20px', fontSize: 17, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 24px rgba(0,0,0,0.25)', zIndex: 50, whiteSpace: 'nowrap', textAlign: 'center' },
   overlay:        { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'flex-end' },
-  modal:          { background: '#fff', borderRadius: '20px 20px 0 0', width: '100%', maxHeight: '90vh', display: 'flex', flexDirection: 'column' },
+  modal:          { background: '#fff', borderRadius: '20px 20px 0 0', width: '100%', maxHeight: '90dvh', display: 'flex', flexDirection: 'column' },
   modalHeader:    { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 20px 0' },
   modalTitle:     { fontSize: 18, fontWeight: 700 },
-  closeBtn:       { background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#6b7280', padding: 4 },
+  closeBtn:       { background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#6b7280', padding: 10, margin: -6 },
   modalBody:      { padding: '16px 20px', flex: 1, overflowY: 'auto' },
-  modalFooter:    { padding: '12px 20px 32px', borderTop: '1px solid #f3f4f6' },
+  modalFooter:    { padding: '12px 20px calc(env(safe-area-inset-bottom) + 20px)', borderTop: '1px solid #f3f4f6' },
   optGroup:       { marginBottom: 20 },
   optGroupHeader: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 },
   optGroupName:   { fontSize: 15, fontWeight: 600 },
   optBadge:       { fontSize: 11, background: 'var(--clr-bg-a)', color: 'var(--clr)', borderRadius: 6, padding: '2px 8px' },
-  optItem:        { display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', padding: '12px 14px', marginBottom: 6, border: '1.5px solid #e5e7eb', borderRadius: 10, background: '#fff', cursor: 'pointer', fontSize: 14 },
+  optItem:        { display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', minHeight: 48, padding: '12px 14px', marginBottom: 6, border: '1.5px solid #e5e7eb', borderRadius: 10, background: '#fff', cursor: 'pointer', fontSize: 14 },
   optItemSelected:{ border: '1.5px solid var(--clr)', background: 'var(--clr-bg-a)' },
   optPrice:       { color: 'var(--clr)', fontWeight: 600 },
   qtyRow:         { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, margin: '16px 0' },
-  qtyBtn:         { width: 40, height: 40, borderRadius: '50%', border: '1.5px solid #d1d5db', background: '#fff', fontSize: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' },
-  qtyBtnSm:       { width: 28, height: 28, borderRadius: '50%', border: '1.5px solid #d1d5db', background: '#fff', fontSize: 16, cursor: 'pointer' },
+  qtyBtn:         { width: 48, height: 48, borderRadius: '50%', border: '1.5px solid #d1d5db', background: '#fff', fontSize: 22, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  qtyBtnSm:       { width: 36, height: 36, borderRadius: '50%', border: '1.5px solid #d1d5db', background: '#fff', fontSize: 18, cursor: 'pointer' },
   qtyNum:         { fontSize: 20, fontWeight: 700, minWidth: 32, textAlign: 'center' },
   qtyNumSm:       { fontSize: 15, fontWeight: 600, minWidth: 24, textAlign: 'center' },
   addBtn:         { width: '100%', padding: '16px', background: 'var(--clr)', color: 'var(--clr-on)', border: 'none', borderRadius: 12, fontSize: 16, fontWeight: 700, cursor: 'pointer', marginBottom: 8 },
@@ -537,7 +537,7 @@ const styles: Record<string, React.CSSProperties> = {
   cartItemOpts:   { fontSize: 12, color: '#9ca3af' },
   cartItemRight:  { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 },
   cartItemPrice:  { fontSize: 14, fontWeight: 700, color: 'var(--clr)' },
-  noteInput:      { width: '100%', marginTop: 16, padding: 12, border: '1px solid #e5e7eb', borderRadius: 10, fontSize: 14, resize: 'none', boxSizing: 'border-box' },
+  noteInput:      { width: '100%', marginTop: 16, padding: 12, border: '1px solid #e5e7eb', borderRadius: 10, fontSize: 16, resize: 'none', boxSizing: 'border-box' },
   totalRow:       { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   totalPrice:     { fontSize: 20, fontWeight: 700, color: 'var(--clr)' },
   confirmItem:    { display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f3f4f6', fontSize: 14 },
