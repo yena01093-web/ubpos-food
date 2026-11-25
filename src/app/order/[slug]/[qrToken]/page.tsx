@@ -41,6 +41,7 @@ export default function OrderPage({ params }: { params: { slug: string; qrToken:
   const [requestNote,  setRequestNote]  = useState('');
   const [payLoading,   setPayLoading]   = useState(false);
   const [error,        setError]        = useState('');
+  const [welcomed,     setWelcomed]     = useState(false);
   const catRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const promoSearches = PROMO_SEARCHES[slug] ?? [];
@@ -156,8 +157,8 @@ export default function OrderPage({ params }: { params: { slug: string; qrToken:
     '--clr-nt':   '#0A1628',
     '--clr-on':   '#0F1E35',
     '--clr-bg-a': 'rgba(200,164,90,0.12)',
-    '--clr-fl':   '#0F1E35',
-    '--clr-fl-txt':'#C8A45A',
+    '--clr-fl':   '#C8A45A',
+    '--clr-fl-txt':'#0F1E35',
   } as React.CSSProperties : {
     '--clr':      '#E8560A',
     '--clr-hd':   '#E8560A',
@@ -168,8 +169,18 @@ export default function OrderPage({ params }: { params: { slug: string; qrToken:
     '--clr-fl-txt':'#fff',
   } as React.CSSProperties;
 
+  if (isHotel && !isTakeout && table && !welcomed) return <HotelWelcome room={table.table_number} onStart={() => setWelcomed(true)} />;
+
   return (
-    <div style={{ ...styles.root, ...themeVars }}>
+    <div style={{ ...styles.root, ...themeVars, ...(isHotel ? { background: '#0F1E35' } : {}) }}>
+      {isHotel ? (
+        <header style={{ background: '#0F1E35', color: '#C8A45A', textAlign: 'center', padding: 'calc(env(safe-area-inset-top) + 16px) 16px 8px' }}>
+          <div style={{ fontSize: 26, fontWeight: 300, letterSpacing: 4, lineHeight: 1 }}>JC</div>
+          <div style={{ fontSize: 11, letterSpacing: 3, opacity: 0.85, marginTop: 2 }}>JC HOTEL</div>
+          <h1 style={{ fontSize: 26, fontWeight: 700, margin: '20px 0 8px' }}>{table ? `Room ${table.table_number} 서비스` : '룸서비스'}</h1>
+          {store?.notice && <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', paddingBottom: 8 }}>{store.notice}</div>}
+        </header>
+      ) : (
       <header style={styles.header}>
         <div style={styles.headerInner}>
           <span style={styles.storeName}>{store?.name}</span>
@@ -177,22 +188,29 @@ export default function OrderPage({ params }: { params: { slug: string; qrToken:
         </div>
         {store?.notice && <div style={styles.notice}>📢 {store.notice}</div>}
       </header>
-      {(banners.length > 0 || promoMenus.length > 0) && <PromoBanner menus={promoMenus} banners={banners} onSelect={menu => !menu.is_soldout && setSelectedMenu(menu)} />}
-      <nav style={styles.catNav}>
+      )}
+      {!isHotel && (banners.length > 0 || promoMenus.length > 0) && <PromoBanner menus={promoMenus} banners={banners} onSelect={menu => !menu.is_soldout && setSelectedMenu(menu)} />}
+      <nav style={isHotel ? { ...styles.catNav, background: '#0F1E35', borderBottom: '1px solid rgba(200,164,90,0.25)', top: 0 } : styles.catNav}>
         {categories.map(cat => (
-          <button key={cat.id} onClick={() => scrollTocat(cat.id)} style={{ ...styles.catTab, background: activecat === cat.id ? 'var(--clr)' : '#f3f4f6', color: activecat === cat.id ? 'var(--clr-on)' : '#4b5563', fontWeight: activecat === cat.id ? 700 : 500 }}>{cat.name}</button>
+          <button key={cat.id} onClick={() => scrollTocat(cat.id)} style={isHotel ? { ...styles.catTab, background: 'transparent', borderRadius: 0, padding: '10px 14px', color: activecat === cat.id ? '#C8A45A' : 'rgba(255,255,255,0.7)', fontWeight: activecat === cat.id ? 700 : 500, borderBottom: activecat === cat.id ? '2px solid #C8A45A' : '2px solid transparent' } : { ...styles.catTab, background: activecat === cat.id ? 'var(--clr)' : '#f3f4f6', color: activecat === cat.id ? 'var(--clr-on)' : '#4b5563', fontWeight: activecat === cat.id ? 700 : 500 }}>{cat.name}</button>
         ))}
       </nav>
-      <main style={styles.main}>
+      <main style={isHotel ? { ...styles.main, background: '#0F1E35' } : styles.main}>
         {categories.map(cat => (
-          <div key={cat.id} ref={el => { catRefs.current[cat.id] = el; }} style={styles.catSection}>
-            <h2 style={styles.catTitle}>{cat.name} <span style={styles.catCount}>{cat.menus.length}</span></h2>
-            <div style={styles.menuGrid}>
-              {cat.menus.map(menu => <MenuCard key={menu.id} menu={menu} onSelect={() => !menu.is_soldout && setSelectedMenu(menu)} />)}
-            </div>
+          <div key={cat.id} ref={el => { catRefs.current[cat.id] = el; }} style={isHotel ? { ...styles.catSection, background: 'transparent', borderTop: 'none' } : styles.catSection}>
+            {!isHotel && <h2 style={styles.catTitle}>{cat.name} <span style={styles.catCount}>{cat.menus.length}</span></h2>}
+            {isHotel ? (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, padding: '16px 16px 4px' }}>
+                {cat.menus.map(menu => <HotelMenuCard key={menu.id} menu={menu} onSelect={() => !menu.is_soldout && setSelectedMenu(menu)} />)}
+              </div>
+            ) : (
+              <div style={styles.menuGrid}>
+                {cat.menus.map(menu => <MenuCard key={menu.id} menu={menu} onSelect={() => !menu.is_soldout && setSelectedMenu(menu)} />)}
+              </div>
+            )}
           </div>
         ))}
-        <StoreFooter slug={slug} />
+        {!isHotel && <StoreFooter slug={slug} />}
         <div style={{ height: 'calc(env(safe-area-inset-bottom) + 100px)' }} />
       </main>
       {cart.totalCount > 0 && !showCart && <button style={styles.cartFloat} onClick={() => setShowCart(true)}>🛒 {cart.totalCount}개 · {fmt(cart.totalPrice)}</button>}
@@ -202,6 +220,35 @@ export default function OrderPage({ params }: { params: { slug: string; qrToken:
       {orderStep === 'payment' && <PaymentModal amount={cart.totalPrice} loading={payLoading} error={error} onPay={processPayment} onBack={() => setOrderStep('confirm')} />}
       {orderStep === 'done' && <DoneModal orderId={orderId} onClose={() => setOrderStep('menu')} />}
     </div>
+  );
+}
+
+function HotelWelcome({ room, onStart }: { room: string; onStart: () => void }) {
+  return (
+    <div style={{ minHeight: '100dvh', background: 'linear-gradient(180deg, #0F1E35 0%, #0A1628 100%)', color: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 'calc(env(safe-area-inset-top) + 32px) 24px calc(env(safe-area-inset-bottom) + 32px)', fontFamily: "'Pretendard', 'Apple SD Gothic Neo', sans-serif", boxSizing: 'border-box' }}>
+      <div style={{ textAlign: 'center', color: '#C8A45A' }}>
+        <div style={{ fontSize: 34, fontWeight: 300, letterSpacing: 5, lineHeight: 1 }}>JC</div>
+        <div style={{ fontSize: 12, letterSpacing: 4, marginTop: 4 }}>JC HOTEL</div>
+      </div>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+        <h1 style={{ fontSize: 36, fontWeight: 800, color: '#C8A45A', lineHeight: 1.25, margin: 0 }}>환영합니다,<br />JC Hotel!</h1>
+        <p style={{ fontSize: 17, color: 'rgba(255,255,255,0.85)', marginTop: 20 }}>현재 위치: Room {room}</p>
+      </div>
+      <button onClick={onStart} style={{ width: '100%', maxWidth: 420, padding: '18px', background: '#fff', color: '#0F1E35', border: 'none', borderRadius: 40, fontSize: 18, fontWeight: 700, cursor: 'pointer' }}>객실 서비스</button>
+    </div>
+  );
+}
+
+function HotelMenuCard({ menu, onSelect }: { menu: MenuWithOptions; onSelect: () => void }) {
+  return (
+    <button onClick={onSelect} disabled={menu.is_soldout} style={{ display: 'flex', flexDirection: 'column', textAlign: 'left', background: 'none', border: 'none', padding: 0, cursor: 'pointer', opacity: menu.is_soldout ? 0.5 : 1, color: '#fff' }}>
+      <div style={{ position: 'relative', width: '100%', aspectRatio: '1 / 1', borderRadius: 14, overflow: 'hidden', background: 'rgba(255,255,255,0.08)' }}>
+        {menu.image_url && <img src={menu.image_url} alt={menu.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />}
+        {menu.is_soldout && <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>품절</div>}
+      </div>
+      <span style={{ fontSize: 16, fontWeight: 600, marginTop: 10, lineHeight: 1.3 }}>{menu.name}</span>
+      <span style={{ fontSize: 15, fontWeight: 600, color: '#C8A45A', marginTop: 4 }}>{fmt(menu.price)}</span>
+    </button>
   );
 }
 
